@@ -66,19 +66,30 @@ const DayColumn: React.FC<DayColumnProps> = ({
           ...(isToday ? styles.todayHeader : {}),
         }}
       >
-        <div style={styles.dayLabel}>
-          {getDateLabel(date)} {isToday && "📍"}
-        </div>
-        <div
-          style={{
-            ...styles.dayDate,
-            ...(isToday ? styles.todayDate : {}),
-          }}
-        >
-          {date.getDate()}
-        </div>
-        <div style={styles.dayHours}>
-          {totalHours.toFixed(1)}h / {maxHours}h
+        <div style={styles.headerTop}>
+          <div style={styles.headerLeft}>
+            <div style={styles.dayLabel}>
+              {getDateLabel(date)} {isToday && "📍"}
+            </div>
+            <div
+              style={{
+                ...styles.dayDate,
+                ...(isToday ? styles.todayDate : {}),
+              }}
+            >
+              {date.getDate()}
+            </div>
+            <div style={styles.dayHours}>
+              {totalHours.toFixed(1)}h / {maxHours}h
+            </div>
+          </div>
+          <button
+            onClick={() => onAddEntry(dateStr)}
+            style={styles.addButtonHeader}
+            title="Add entry"
+          >
+            + Add
+          </button>
         </div>
       </div>
 
@@ -87,7 +98,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
           ref={drop}
           style={{
             ...styles.dayTrack,
-            height: `${maxHours * 60}px`,
+            minHeight: `${maxHours * 60}px`,
             backgroundColor: isOver && canDrop ? "#e6fffa" : "#f7fafc",
             borderColor: isOver && canDrop ? "#81e6d9" : "#e2e8f0",
           }}
@@ -112,14 +123,6 @@ const DayColumn: React.FC<DayColumnProps> = ({
               />
             ))}
           </div>
-
-          <button
-            onClick={() => onAddEntry(dateStr)}
-            style={styles.addButton}
-            title="Add entry"
-          >
-            + Add
-          </button>
         </div>
       </div>
     </div>
@@ -130,7 +133,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   dayColumn: {
     display: "flex",
     flexDirection: "column",
-    minWidth: "200px",
+    minWidth: "250",
     backgroundColor: "white",
     borderRadius: "12px",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
@@ -144,6 +147,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "16px",
     borderBottom: "2px solid #e2e8f0",
     backgroundColor: "#f7fafc",
+  },
+  headerTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "12px",
+  },
+  headerLeft: {
+    display: "flex",
+    flexDirection: "column",
+    flex: 1,
   },
   todayHeader: {
     backgroundColor: "#edf2f7",
@@ -198,11 +212,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: "column",
     gap: "4px",
   },
-  addButton: {
-    position: "absolute",
-    bottom: "8px",
-    left: "50%",
-    transform: "translateX(-50%)",
+  addButtonHeader: {
     padding: "6px 12px",
     fontSize: "12px",
     fontWeight: "600",
@@ -212,7 +222,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: "6px",
     cursor: "pointer",
     transition: "all 0.2s",
-    zIndex: 10,
+    flexShrink: 0,
   },
 };
 

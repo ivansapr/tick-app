@@ -163,6 +163,14 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({
           {entry.hours}h → {currentResizeHours}h
         </div>
       )}
+      <div style={styles.entryTitle}>{entry.task?.name || "Unknown Task"}</div>
+
+      {entry.project && (
+        <div style={styles.entryProject}>{entry.project.name}</div>
+      )}
+
+      <div style={styles.entryHours}>{entry.hours}h</div>
+
       <div style={styles.entryHeader}>
         <button
           ref={duplicateRef}
@@ -187,9 +195,6 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({
         >
           Copy
         </button>
-        <div style={styles.entryTitle}>
-          {entry.task?.name || "Unknown Task"}
-        </div>
         <div style={styles.entryActions}>
           <button
             onClick={(e) => {
@@ -213,12 +218,6 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({
           </button>
         </div>
       </div>
-
-      {entry.project && (
-        <div style={styles.entryProject}>{entry.project.name}</div>
-      )}
-
-      <div style={styles.entryHours}>{entry.hours}h</div>
 
       {entry.notes && (
         <div style={styles.entryNotes} title={entry.notes}>
@@ -255,6 +254,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: "6px",
     padding: "12px",
     paddingBottom: "20px",
+    minHeight: "120px",
     transition: "all 0.2s",
     display: "flex",
     flexDirection: "column",
@@ -263,7 +263,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   entryHeader: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
     gap: "8px",
   },
@@ -289,9 +289,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "14px",
     fontWeight: "600",
     color: "#2d3748",
-    flex: 1,
     lineHeight: "1.4",
-    minWidth: 0,
     overflow: "hidden",
     textOverflow: "ellipsis",
   },

@@ -138,15 +138,31 @@ The timeline displays your time entries horizontally across multiple days:
 2. Confirm the deletion
 
 ### Drag and Drop
+#### Move Entries
 
-**Move an Entry:**
-- Click and drag an entry to another day
-- Release to move it
+**Drag & Drop:**
+- Click and drag the entry card to another day
+- Release to drop and move the entry
+- Simple and intuitive!
 
-**Copy an Entry:**
-- Hold `Ctrl` (Windows/Linux) or `Cmd` (Mac)
-- Click and drag an entry to another day
-- Release to create a copy
+#### Duplicate Entries
+
+**Drag to Copy:**
+- Click and drag the "Copy" button (on the left side of each entry)
+- Drag to any day (same day or different day)
+- Release to create a duplicate
+- The original entry stays in place
+
+#### Resize Entry Hours
+
+**Drag to Resize:**
+- Hover over the bottom edge of any entry card
+- Three dots (⋮⋮⋮) appear at the bottom
+- Click and drag up (decrease) or down (increase) to adjust hours
+- Changes happen in 30-minute increments (0.5h steps)
+- A preview appears above the card showing "OldHours → NewHours"
+- Release to save the new time automatically
+- No need to click edit!
 
 ## PWA Installation
 
@@ -210,10 +226,19 @@ Install the app on your device for a native-like experience:
 - Ensure you're using a supported browser (Chrome, Edge, Firefox, Safari)
 - Try refreshing the page
 - Check if JavaScript is enabled
+- Make sure you're clicking and holding on the entry card (not the Copy button)
 
-**Problem:** Ctrl+Drag doesn't copy
-- Make sure you're holding Ctrl/Cmd WHILE dragging
-- Try using keyboard: Ctrl/Cmd should be pressed before you start dragging
+**Problem:** Copy button not working
+- Make sure you're dragging the "Copy" button (not clicking it)
+- The Copy button is on the left side of each entry card
+- Check browser console for errors (F12 → Console tab)
+- Try refreshing the page
+
+**Problem:** Resize not working
+- Hover over the bottom edge of the entry card (not the middle)
+- Look for the three dots (⋮⋮⋮) to appear
+- Make sure you're dragging vertically (up/down not sideways)
+- The resize handle only appears on hover
 
 ### Service Worker Issues
 

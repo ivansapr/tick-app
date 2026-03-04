@@ -8,8 +8,9 @@ A Progressive Web App (PWA) for managing time entries with the Tick API. Feature
 - 📅 **Infinite Timeline** - Smooth horizontal scrolling through unlimited days
 - 🎯 **Visual Hours** - Entry cards sized proportionally to hours (max 8 hours per day)
 - 🖱️ **Drag & Drop** - Move entries between dates
-- ⌨️ **Drag & Copy** - Hold Ctrl while dragging to copy entries
-- 🔁 **Repeated Entries** - Create entries across date ranges with frequency options
+- 📋 **Drag to Copy** - Drag "Copy" button to duplicate entries
+- 📏 **Resize to Adjust** - Drag bottom edge to change entry hours (30-min increments)
+- 🔁 **Repeated Entries** - Create entries across date ranges with repeat options
 - ✏️ **Full CRUD** - Add, edit, and delete entries
 - 📱 **PWA Support** - Install as standalone app, offline capability
 - 💾 **Local Storage** - Automatic authentication persistence
@@ -39,7 +40,7 @@ npm install
 ### Development Mode
 
 ```bash
-npm start
+npm run dev
 ```
 
 Opens at [http://localhost:3000](http://localhost:3000)
@@ -52,12 +53,13 @@ npm run build
 
 Creates optimized production build in the `build/` directory.
 
-### Serve Production Build
+### Preview Production Build
 
 ```bash
-npm install -g serve
-serve -s build
+npm run preview
 ```
+
+Serves the production build locally for testing.
 
 ## Usage
 
@@ -93,9 +95,22 @@ serve -s build
 1. Click the 🗑️ icon on any entry card
 2. Confirm deletion
 
-#### Drag & Drop
-- **Move**: Drag an entry to another day
-- **Copy**: Hold Ctrl/Cmd while dragging to copy instead of move
+#### Move Entries
+- **Drag & Drop**: Click and drag the entry card to another day to move it
+
+#### Duplicate Entries
+- **Drag to Copy**: Click and drag the "Copy" button to create a duplicate
+- Drag to the same day or a different day
+- Release to create the copy
+- More intuitive than clicking!
+
+#### Resize Entry Hours
+- **Drag to Resize**: Hover over the bottom of any entry card
+- Three dots (⋮⋮⋮) appear at the bottom edge
+- Click and drag up/down to adjust hours
+- Changes in 30-minute increments (0.5h steps)
+- Preview shows "Old → New" hours while dragging
+- Release to save the new time
 
 #### Repeated Entries
 1. Click "+ Repeated Entry" in the header
@@ -183,9 +198,9 @@ User-Agent: TickClient ({email})
 
 - **React 18** - UI library
 - **TypeScript** - Type safety
-- **React DnD** - Drag and drop functionality
-- **Workbox** - Service worker and PWA utilities
-- **Create React App** - Build tooling
+- **Vite** - Build tool and dev server
+- **React DnD** - Drag and drop for moving entries
+- **Vite PWA Plugin** - Service worker and PWA utilities with Workbox
 
 ## Browser Support
 
@@ -198,18 +213,24 @@ User-Agent: TickClient ({email})
 
 ### Available Scripts
 
-- `npm start` - Run development server
-- `npm build` - Build for production
-- `npm test` - Run tests
-- `npm eject` - Eject from CRA (irreversible)
+- `npm run dev` - Run development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm test` - Run tests with Vitest
 
 ### Environment Variables
 
 Create `.env.local` for custom configuration:
 
 ```env
-REACT_APP_TICK_BASE_URL=https://www.tickspot.com
+VITE_TICK_BASE_URL=https://www.tickspot.com
 ```
+
+**Note**: Vite uses `VITE_*` prefix instead of `REACT_APP_*`. Access them with `import.meta.env.VITE_*` instead of `process.env.REACT_APP_*`.
+
+### Migration from Webpack/CRA
+
+See [VITE_MIGRATION.md](./VITE_MIGRATION.md) for details on the migration from Create React App to Vite.
 
 ## Troubleshooting
 

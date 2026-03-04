@@ -10,6 +10,8 @@
 
 # production
 /build
+/dist
+/dev-dist
 
 # misc
 .DS_Store
@@ -31,6 +33,8 @@ yarn-error.log*
 
 # Service Worker
 /src/service-worker.js
+/public/sw.js
+/public/workbox-*.js
 
 # Optional npm cache directory
 .npm

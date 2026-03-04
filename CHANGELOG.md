@@ -26,20 +26,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Smooth scroll animation to today's column
   - Shows helpful scroll hint text
 
+- **Drag to Copy Button** - Intuitive duplication via drag
+  - "Copy" button on left side of each entry card
+  - Drag the Copy button to duplicate the entry
+  - Can drag to same day or different day
+  - More intuitive than click-based duplication
+  - Similar to Notion and other modern apps
+
+- **Resize to Adjust Hours** - Visual time adjustment via drag
+  - Hover over bottom edge of entry card to reveal resize handle
+  - Three dots (⋮⋮⋮) appear at the bottom
+  - Drag up/down to adjust entry hours
+  - 30-minute increments (0.5h steps)
+  - Live preview shows "Old → New" hours while dragging
+  - Automatic save on release
+  - No need to open edit modal for quick time adjustments
+
 - **Data Enrichment** - Entries now properly display task and project information
   - Automatic mapping of task and project objects to entries
   - Project colors assigned consistently
   - Full task and project details available on entry cards
 
 - **Enhanced Drag & Drop**
-  - Improved Ctrl/Cmd key detection for copy operations
-  - Global keyboard event listeners for reliable modifier tracking
+  - Simplified to move-only behavior (more reliable)
   - Drop zones on entire day columns (not just entries)
   - Visual feedback when hovering over valid drop targets
   - Better UX for dragging to empty days
 
 ### 🔧 Changed
 
+- **Drag behavior split into two modes**:
+  - Drag entry card = Move entry
+  - Drag "Copy" button = Create duplicate
+- **No keyboard modifiers needed** - More intuitive and cross-platform
 - Removed fixed day view selector (3/5/7/14 days)
 - Removed Previous/Next navigation buttons
 - Timeline now starts with 29 days visible (14 before, today, 14 after)
@@ -49,14 +68,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Fixed
 
 - **Entry Display Issue** - Fixed entries not showing task and project names
+  - Fixed ID type mismatch (string vs number) in task matching
+  - Changed from `task.id.toString() === entry.task_id` to `Number(task.id) === entry.task_id`
   - Added proper data enrichment after API calls
   - Tasks now linked to their projects
   - Projects assigned unique colors
   
-- **Drag & Copy Not Working** - Fixed Ctrl/Cmd+Drag to copy functionality
-  - Implemented global keyboard event tracking
-  - Fixed drop target detection
-  - Added proper state management for modifier keys
+- **Drag behavior** - Simplified and made more reliable
+  - Removed complex Ctrl/Cmd key detection
+  - Drag now only moves entries
+  - Added dedicated duplicate button for copying
 
 - **Authentication Error** - Fixed undefined subscription name error
   - Added safe navigation operators
@@ -157,7 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This update transforms the timeline experience from a fixed-window view to an infinite, smooth-scrolling interface. Users can now browse through days seamlessly without clicking navigation buttons. The timeline intelligently loads more days as you scroll, creating a fluid and intuitive experience.
 
-Key improvements include better visual identification of today's date, enhanced drag-and-drop reliability, and proper display of task/project information on entry cards.
+Key improvements include better visual identification of today's date, simplified drag-and-drop with a drag-to-copy button, resize functionality for quick time adjustments, and proper display of task/project information on entry cards. The "Copy" button and resize handle provide intuitive ways to manage entries without opening modal dialogs - similar to modern apps like Notion and Linear.
 
 ### v0.1.0 - Initial Release
 
