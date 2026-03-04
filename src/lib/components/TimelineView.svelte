@@ -1,15 +1,16 @@
 <script lang="ts">
     import { format, startOfWeek, addDays } from "date-fns";
-    import { appState } from "../stores.js";
+    import { appState } from "../stores.svelte.js";
     import { TickAPI } from "../api.js";
     import type { TickEntry } from "../types.js";
     import EntryDetails from "./EntryDetails.svelte";
 
-    let api = $state<TickAPI | null>(null);
     let weekStart = $state(new Date());
     let weekDays = $state<Date[]>([]);
     let selectedEntry = $state<TickEntry | null>(null);
     let showEntryDetails = $state(false);
+    let isLoadingEntries = $state(false);
+    let loadedWeekKey = $state<string>("");
 
     function normalizeProjectId(
         value: string | null | undefined,
@@ -23,20 +24,10 @@
         weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     });
 
+    // Load entries when auth is ready or week changes
     $effect(() => {
-        if (
-            appState.authConfig &&
-            appState.authConfig.token &&
-            appState.authConfig.subscriptionId
-        ) {
-            api = new TickAPI(appState.authConfig);
-            api.setSubscription(
-                appState.authConfig.subscriptionId,
-                appState.authConfig.token,
-            );
-            if (weekDays.length > 0) {
-                loadEntries();
-            }
+        if (appState.authConfig && weekDays.length > 0) {
+            loadEntries();
         }
     });
 
@@ -65,16 +56,32 @@
     );
 
     async function loadEntries() {
-        if (!api) return;
+        if (!appState.authConfig || weekDays.length === 0) return;
+
+        const startDate = format(weekDays[0], "yyyy-MM-dd");
+        const endDate = format(weekDays[weekDays.length - 1], "yyyy-MM-dd");
+        const weekKey = `${startDate}_${endDate}`;
+
+        // Skip if already loading or already loaded this week
+        if (isLoadingEntries || loadedWeekKey === weekKey) return;
+
+        isLoadingEntries = true;
+        loadedWeekKey = weekKey;
+
+        const api = new TickAPI(appState.authConfig);
+        api.setSubscription(
+            appState.authConfig.subscriptionId!,
+            appState.authConfig.token!,
+        );
 
         try {
-            const startDate = format(weekDays[0], "yyyy-MM-dd");
-            const endDate = format(weekDays[weekDays.length - 1], "yyyy-MM-dd");
-
             const weekEntries = await api.getEntries(startDate, endDate);
             appState.entries = weekEntries;
         } catch (error) {
             console.error("Failed to load entries:", error);
+            loadedWeekKey = ""; // Reset on error to allow retry
+        } finally {
+            isLoadingEntries = false;
         }
     }
 
@@ -133,12 +140,6 @@
             })
             .reduce((total, entry) => total + entry.hours, 0);
     }
-
-    $effect(() => {
-        if (appState.authConfig) {
-            loadEntries();
-        }
-    });
 </script>
 
 <div class="timeline-container">

@@ -16,13 +16,18 @@ export class TickAPI {
       axios.defaults.baseURL = `https://www.tickspot.com/${config.subscriptionId}/api/v2`;
       axios.defaults.headers.common["Authorization"] =
         `Token token=${config.token}`;
+      axios.defaults.headers.common["User-Agent"] =
+        `TickClient (${config.email})`;
     }
-    axios.defaults.headers.common["User-Agent"] =
-      `TickClient (${config.email})`;
   }
 
   async authenticate(): Promise<TickRole[] | null> {
     try {
+      if (!this.config.password) {
+        console.error("Password is required for authentication");
+        return null;
+      }
+
       const response = await axios.get(
         "https://www.tickspot.com/api/v2/roles.json",
         {

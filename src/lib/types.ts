@@ -32,7 +32,7 @@ export interface TickProject {
 
 export interface AuthConfig {
   email: string;
-  password: string;
+  password?: string;
   token?: string;
   subscriptionId?: string;
   baseUrl: string;

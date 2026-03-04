@@ -16,6 +16,7 @@ class AppState {
   selectedDate = $state<Date>(new Date());
   selectedProject = $state<string | null>(null);
   isLoading = $state<boolean>(false);
+  isAuthInitialized = $state<boolean>(false);
 }
 
 export const appState = new AppState();

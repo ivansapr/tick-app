@@ -1,6 +1,6 @@
 <script lang="ts">
     import { format } from "date-fns";
-    import { appState } from "../stores.js";
+    import { appState } from "../stores.svelte.js";
     import { TickAPI } from "../api.js";
     import type { TickEntry, TickTask } from "../types.js";
 
@@ -8,10 +8,8 @@
     let selectedTaskId = $state("");
     let hours = $state(1);
     let notes = $state("");
-
-    let api = $derived(
-        appState.authConfig ? new TickAPI(appState.authConfig) : null,
-    );
+    let isLoading = $state(false);
+    let hasLoaded = $state(false);
 
     function normalizeProjectId(
         value: string | null | undefined,
@@ -47,8 +45,10 @@
     }
 
     async function loadProjectsAndTasks() {
-        if (!api) return;
+        if (!appState.authConfig || isLoading || hasLoaded) return;
 
+        isLoading = true;
+        const api = new TickAPI(appState.authConfig);
         try {
             const [loadedProjects, loadedTasks] = await Promise.all([
                 api.getProjects(),
@@ -57,13 +57,18 @@
 
             appState.projects = loadedProjects;
             appState.tasks = loadedTasks;
+            hasLoaded = true;
         } catch (error) {
             console.error("Failed to load projects and tasks:", error);
+        } finally {
+            isLoading = false;
         }
     }
 
     async function handleSubmit() {
-        if (!selectedTaskId || hours <= 0 || !api) return;
+        if (!selectedTaskId || hours <= 0 || !appState.authConfig) return;
+
+        const api = new TickAPI(appState.authConfig);
 
         const selectedTask = appState.tasks.find(
             (t) => t.id === selectedTaskId,
@@ -114,8 +119,9 @@
         return project ? `${project.name} - ${task.name}` : task.name;
     }
 
+    // Load projects and tasks when auth becomes available
     $effect(() => {
-        if (appState.authConfig) {
+        if (appState.authConfig && !hasLoaded && !isLoading) {
             loadProjectsAndTasks();
         }
     });

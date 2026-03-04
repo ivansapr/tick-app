@@ -1,6 +1,6 @@
 <script lang="ts">
     import { format } from "date-fns";
-    import { appState } from "../stores.js";
+    import { appState } from "../stores.svelte.js";
     import { TickAPI } from "../api.js";
     import type { TickEntry, TickTask } from "../types.js";
 

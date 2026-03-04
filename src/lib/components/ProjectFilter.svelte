@@ -1,19 +1,23 @@
 <script lang="ts">
-    import { appState } from "../stores.js";
+    import { appState } from "../stores.svelte.js";
     import { TickAPI } from "../api.js";
 
-    let api = $derived(
-        appState.authConfig ? new TickAPI(appState.authConfig) : null,
-    );
+    let isLoading = $state(false);
+    let hasLoaded = $state(false);
 
     async function loadProjects() {
-        if (!api) return;
+        if (!appState.authConfig || isLoading || hasLoaded) return;
 
+        isLoading = true;
+        const api = new TickAPI(appState.authConfig);
         try {
             const loadedProjects = await api.getProjects();
             appState.projects = loadedProjects;
+            hasLoaded = true;
         } catch (error) {
             console.error("Failed to load projects:", error);
+        } finally {
+            isLoading = false;
         }
     }
 
@@ -21,8 +25,9 @@
         appState.selectedProject = null;
     }
 
+    // Load projects when auth becomes available
     $effect(() => {
-        if (appState.authConfig) {
+        if (appState.authConfig && !hasLoaded && !isLoading) {
             loadProjects();
         }
     });

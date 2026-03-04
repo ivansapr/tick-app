@@ -1,6 +1,8 @@
 <script lang="ts">
-    import { appState } from "../stores.js";
+    import { goto } from "$app/navigation";
+    import { appState } from "../stores.svelte.js";
     import { TickAPI } from "../api.js";
+    import { AuthService } from "../auth.js";
     import type { AuthConfig, TickRole } from "../types.js";
 
     let email = $state("");
@@ -52,29 +54,22 @@
     }
 
     function selectRole(role: TickRole) {
-        const config: AuthConfig = {
-            email,
-            password,
-            token: role.api_token,
-            subscriptionId: role.subscription_id,
-            baseUrl: "https://www.tickspot.com",
-        };
-
-        appState.authConfig = config;
-        appState.selectedRole = role;
-        localStorage.setItem("tickAuth", JSON.stringify(config));
-        localStorage.setItem("tickRole", JSON.stringify(role));
+        // Use AuthService to save authentication
+        AuthService.saveAuth(role, email);
 
         showRoleSelection = false;
-        password = ""; // Clear password for security
+        password = ""; // Clear password
+        email = ""; // Clear email from form
+
+        // Navigate to calendar after successful authentication
+        goto("/calendar");
     }
 
-    function handleLogout() {
-        appState.authConfig = null;
-        appState.selectedRole = null;
-        appState.userRoles = [];
-        localStorage.removeItem("tickAuth");
-        localStorage.removeItem("tickRole");
+    export function handleLogout() {
+        // Use AuthService to logout
+        AuthService.logout(true);
+
+        // Clear component state
         email = "";
         password = "";
         loginError = "";
@@ -82,30 +77,8 @@
         availableRoles = [];
     }
 
-    // Check for existing auth on mount
-    $effect(() => {
-        if (typeof window !== "undefined") {
-            const storedAuth = localStorage.getItem("tickAuth");
-            const storedRole = localStorage.getItem("tickRole");
-
-            if (storedAuth && storedRole) {
-                try {
-                    const config = JSON.parse(storedAuth);
-                    const role = JSON.parse(storedRole);
-
-                    if (config.token && config.subscriptionId && config.email) {
-                        appState.authConfig = config;
-                        appState.selectedRole = role;
-                        email = config.email;
-                    }
-                } catch (e) {
-                    console.error("Failed to parse stored auth config");
-                    localStorage.removeItem("tickAuth");
-                    localStorage.removeItem("tickRole");
-                }
-            }
-        }
-    });
+    // Auth state is now loaded globally in root layout via AuthService
+    // This component only handles login/logout UI
 </script>
 
 <div class="auth-container">
