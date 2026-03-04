@@ -8,7 +8,7 @@ import {
   CreateTaskRequest,
   UpdateTaskRequest,
   TickAPIConfig,
-} from '../types/tick';
+} from "../types/tick";
 
 export class TickAPI {
   private email: string;
@@ -33,20 +33,20 @@ export class TickAPI {
       const credentials = btoa(`${this.email}:${this.password}`);
       return `Basic ${credentials}`;
     }
-    throw new Error('No authentication credentials available');
+    throw new Error("No authentication credentials available");
   }
 
   private getHeaders(): HeadersInit {
     return {
-      'Authorization': this.getAuthHeader(),
-      'User-Agent': `TickClient (${this.email})`,
-      'Content-Type': 'application/json',
+      Authorization: this.getAuthHeader(),
+      "User-Agent": `TickClient (${this.email})`,
+      "Content-Type": "application/json",
     };
   }
 
   private getApiUrl(endpoint: string): string {
     if (!this.subscriptionId) {
-      throw new Error('Subscription ID not set');
+      throw new Error("Subscription ID not set");
     }
     return `${this.baseUrl}/${this.subscriptionId}/api/v2${endpoint}`;
   }
@@ -54,21 +54,21 @@ export class TickAPI {
   async authenticate(): Promise<TickRole[] | null> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v2/roles.json`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': this.getAuthHeader(),
-          'User-Agent': `TickClient (${this.email})`,
+          Authorization: this.getAuthHeader(),
+          "User-Agent": `TickClient (${this.email})`,
         },
       });
 
       if (!response.ok) {
-        console.error('Authentication failed:', response.statusText);
+        console.error("Authentication failed:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error("Authentication error:", error);
       return null;
     }
   }
@@ -81,97 +81,100 @@ export class TickAPI {
   // Tasks
   async getTasks(): Promise<TickTask[] | null> {
     try {
-      const response = await fetch(this.getApiUrl('/tasks.json'), {
-        method: 'GET',
+      const response = await fetch(this.getApiUrl("/tasks.json"), {
+        method: "GET",
         headers: this.getHeaders(),
       });
 
       if (!response.ok) {
-        console.error('Failed to fetch tasks:', response.statusText);
+        console.error("Failed to fetch tasks:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get tasks error:', error);
+      console.error("Get tasks error:", error);
       return null;
     }
   }
 
-  async getTask(id: string): Promise<TickTask | null> {
+  async getTask(id: number): Promise<TickTask | null> {
     try {
       const response = await fetch(this.getApiUrl(`/tasks/${id}.json`), {
-        method: 'GET',
+        method: "GET",
         headers: this.getHeaders(),
       });
 
       if (!response.ok) {
-        console.error('Failed to fetch task:', response.statusText);
+        console.error("Failed to fetch task:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get task error:', error);
+      console.error("Get task error:", error);
       return null;
     }
   }
 
   async createTask(data: CreateTaskRequest): Promise<TickTask | null> {
     try {
-      const response = await fetch(this.getApiUrl('/tasks.json'), {
-        method: 'POST',
+      const response = await fetch(this.getApiUrl("/tasks.json"), {
+        method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        console.error('Failed to create task:', response.statusText);
+        console.error("Failed to create task:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Create task error:', error);
+      console.error("Create task error:", error);
       return null;
     }
   }
 
-  async updateTask(id: string, data: UpdateTaskRequest): Promise<TickTask | null> {
+  async updateTask(
+    id: number,
+    data: UpdateTaskRequest,
+  ): Promise<TickTask | null> {
     try {
       const response = await fetch(this.getApiUrl(`/tasks/${id}.json`), {
-        method: 'PUT',
+        method: "PUT",
         headers: this.getHeaders(),
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        console.error('Failed to update task:', response.statusText);
+        console.error("Failed to update task:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Update task error:', error);
+      console.error("Update task error:", error);
       return null;
     }
   }
 
-  async deleteTask(id: string): Promise<boolean> {
+  async deleteTask(id: number): Promise<boolean> {
     try {
       const response = await fetch(this.getApiUrl(`/tasks/${id}.json`), {
-        method: 'DELETE',
+        method: "DELETE",
         headers: this.getHeaders(),
       });
 
       if (!response.ok) {
-        console.error('Failed to delete task:', response.statusText);
+        console.error("Failed to delete task:", response.statusText);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Delete task error:', error);
+      console.error("Delete task error:", error);
       return false;
     }
   }
@@ -179,104 +182,110 @@ export class TickAPI {
   // Projects
   async getProjects(): Promise<TickProject[] | null> {
     try {
-      const response = await fetch(this.getApiUrl('/projects.json'), {
-        method: 'GET',
+      const response = await fetch(this.getApiUrl("/projects.json"), {
+        method: "GET",
         headers: this.getHeaders(),
       });
 
       if (!response.ok) {
-        console.error('Failed to fetch projects:', response.statusText);
+        console.error("Failed to fetch projects:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get projects error:', error);
+      console.error("Get projects error:", error);
       return null;
     }
   }
 
   // Entries
-  async getEntries(startDate?: string, endDate?: string): Promise<TickEntry[] | null> {
+  async getEntries(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<TickEntry[] | null> {
     try {
       const params = new URLSearchParams();
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
 
-      const url = `${this.getApiUrl('/entries.json')}${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `${this.getApiUrl("/entries.json")}${params.toString() ? `?${params.toString()}` : ""}`;
 
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: this.getHeaders(),
       });
 
       if (!response.ok) {
-        console.error('Failed to fetch entries:', response.statusText);
+        console.error("Failed to fetch entries:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get entries error:', error);
+      console.error("Get entries error:", error);
       return null;
     }
   }
 
   async createEntry(data: CreateEntryRequest): Promise<TickEntry | null> {
     try {
-      const response = await fetch(this.getApiUrl('/entries.json'), {
-        method: 'POST',
+      const response = await fetch(this.getApiUrl("/entries.json"), {
+        method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        console.error('Failed to create entry:', response.statusText);
+        console.error("Failed to create entry:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Create entry error:', error);
+      console.error("Create entry error:", error);
       return null;
     }
   }
 
-  async updateEntry(id: string, data: UpdateEntryRequest): Promise<TickEntry | null> {
+  async updateEntry(
+    id: number,
+    data: UpdateEntryRequest,
+  ): Promise<TickEntry | null> {
     try {
       const response = await fetch(this.getApiUrl(`/entries/${id}.json`), {
-        method: 'PUT',
+        method: "PUT",
         headers: this.getHeaders(),
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        console.error('Failed to update entry:', response.statusText);
+        console.error("Failed to update entry:", response.statusText);
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Update entry error:', error);
+      console.error("Update entry error:", error);
       return null;
     }
   }
 
-  async deleteEntry(id: string): Promise<boolean> {
+  async deleteEntry(id: number): Promise<boolean> {
     try {
       const response = await fetch(this.getApiUrl(`/entries/${id}.json`), {
-        method: 'DELETE',
+        method: "DELETE",
         headers: this.getHeaders(),
       });
 
       if (!response.ok) {
-        console.error('Failed to delete entry:', response.statusText);
+        console.error("Failed to delete entry:", response.statusText);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Delete entry error:', error);
+      console.error("Delete entry error:", error);
       return false;
     }
   }
