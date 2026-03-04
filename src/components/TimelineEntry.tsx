@@ -230,14 +230,6 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({
         style={styles.resizeHandle}
         className="resize-handle"
         onMouseDown={handleResizeStart}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.opacity = "1";
-          e.currentTarget.style.backgroundColor = "#f7fafc";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.opacity = "0";
-          e.currentTarget.style.backgroundColor = "transparent";
-        }}
         title="Drag to resize (30 min increments)"
       >
         <div style={styles.resizeIndicator}>⋮⋮⋮</div>
@@ -336,7 +328,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    opacity: 0,
     transition: "all 0.2s",
     backgroundColor: "transparent",
   },

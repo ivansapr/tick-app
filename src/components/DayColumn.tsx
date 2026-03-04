@@ -133,7 +133,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   dayColumn: {
     display: "flex",
     flexDirection: "column",
-    minWidth: "250",
+    minWidth: "250px",
     backgroundColor: "white",
     borderRadius: "12px",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
@@ -184,7 +184,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: "600",
   },
   dayContent: {
-    padding: "16px",
+    // padding: "16px",
     flexGrow: 1,
   },
   dayTrack: {
