@@ -69,9 +69,7 @@ const Timeline: React.FC = () => {
         const tasksWithProjects = tasksData
           ? tasksData.map((task) => ({
               ...task,
-              project: projectsWithColors.find(
-                (p) => Number(p.id) === task.project_id,
-              ),
+              project: projectsWithColors.find((p) => p.id === task.project_id),
             }))
           : [];
 
@@ -79,7 +77,7 @@ const Timeline: React.FC = () => {
         const enrichedEntries = entriesData
           ? entriesData.map((entry) => {
               const task = tasksWithProjects.find(
-                (t) => Number(t.id) === entry.task_id,
+                (t) => t.id === entry.task_id,
               );
               if (!task) {
                 console.warn(
@@ -230,7 +228,7 @@ const Timeline: React.FC = () => {
   };
 
   const handleMoveEntry = async (
-    entryId: string,
+    entryId: number,
     newDate: string,
     isCopy: boolean,
   ) => {
@@ -273,7 +271,7 @@ const Timeline: React.FC = () => {
     }
   };
 
-  const handleDeleteEntry = async (entryId: string) => {
+  const handleDeleteEntry = async (entryId: number) => {
     if (!api) return;
     if (!window.confirm("Are you sure you want to delete this entry?")) return;
 
@@ -283,7 +281,7 @@ const Timeline: React.FC = () => {
     }
   };
 
-  const handleUpdateHours = async (entryId: string, newHours: number) => {
+  const handleUpdateHours = async (entryId: number, newHours: number) => {
     if (!api) return;
 
     const updated = await api.updateEntry(entryId, { hours: newHours });
@@ -329,7 +327,7 @@ const Timeline: React.FC = () => {
   const handleRepeatedEntriesCreated = (newEntries: TickEntry[]) => {
     // Enrich all new entries with task and project data
     const enrichedEntries = newEntries.map((entry) => {
-      const task = tasks.find((t) => Number(t.id) === entry.task_id);
+      const task = tasks.find((t) => t.id === entry.task_id);
       return {
         ...entry,
         task,

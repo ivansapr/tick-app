@@ -5,10 +5,10 @@ import { TickEntry } from "../types/tick";
 interface TimelineEntryProps {
   entry: TickEntry;
   maxHours: number;
-  onMove: (entryId: string, newDate: string, isCopy: boolean) => void;
+  onMove: (entryId: number, newDate: string, isCopy: boolean) => void;
   onEdit: (entry: TickEntry) => void;
-  onDelete: (entryId: string) => void;
-  onUpdateHours: (entryId: string, newHours: number) => void;
+  onDelete: (entryId: number) => void;
+  onUpdateHours: (entryId: number, newHours: number) => void;
 }
 
 interface DragItem {
