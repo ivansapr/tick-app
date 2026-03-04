@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useDrop } from "react-dnd";
 import { TickEntry } from "../types/tick";
 import TimelineEntry from "./TimelineEntry";
@@ -39,6 +39,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
   onAddEntry,
   getDateLabel,
 }) => {
+  const dropRef = useRef<HTMLDivElement>(null);
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: ItemType,
     drop: () => {
@@ -49,6 +50,8 @@ const DayColumn: React.FC<DayColumnProps> = ({
       canDrop: monitor.canDrop(),
     }),
   });
+
+  drop(dropRef);
 
   const heightPercent = Math.min((totalHours / maxHours) * 100, 100);
   const isToday = formatDate(date) === formatDate(new Date());
@@ -95,7 +98,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
 
       <div style={styles.dayContent}>
         <div
-          ref={drop}
+          ref={dropRef}
           style={{
             ...styles.dayTrack,
             minHeight: `${maxHours * 60}px`,
