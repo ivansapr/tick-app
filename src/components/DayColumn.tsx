@@ -12,6 +12,7 @@ interface DayColumnProps {
   onMove: (entryId: string, newDate: string, isCopy: boolean) => void;
   onEdit: (entry: TickEntry) => void;
   onDelete: (entryId: string) => void;
+  onUpdateHours: (entryId: string, newHours: number) => void;
   onAddEntry: (date: string) => void;
   getDateLabel: (date: Date) => string;
 }
@@ -34,6 +35,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
   onMove,
   onEdit,
   onDelete,
+  onUpdateHours,
   onAddEntry,
   getDateLabel,
 }) => {
@@ -106,6 +108,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
                 onMove={onMove}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onUpdateHours={onUpdateHours}
               />
             ))}
           </div>

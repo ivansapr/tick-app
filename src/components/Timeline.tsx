@@ -70,7 +70,7 @@ const Timeline: React.FC = () => {
           ? tasksData.map((task) => ({
               ...task,
               project: projectsWithColors.find(
-                (p) => p.id === task.project_id.toString(),
+                (p) => Number(p.id) === task.project_id,
               ),
             }))
           : [];
@@ -79,8 +79,14 @@ const Timeline: React.FC = () => {
         const enrichedEntries = entriesData
           ? entriesData.map((entry) => {
               const task = tasksWithProjects.find(
-                (t) => t.id === entry.task_id.toString(),
+                (t) => Number(t.id) === entry.task_id,
               );
+              if (!task) {
+                console.warn(
+                  `Task not found for entry ${entry.id}. task_id: ${entry.task_id}, Available task IDs:`,
+                  tasksWithProjects.map((t) => t.id),
+                );
+              }
               return {
                 ...entry,
                 task,
@@ -243,7 +249,7 @@ const Timeline: React.FC = () => {
 
       if (newEntry) {
         // Enrich the new entry with task and project data
-        const task = tasks.find((t) => t.id === newEntry.task_id.toString());
+        const task = tasks.find((t) => Number(t.id) === newEntry.task_id);
         const enrichedEntry = {
           ...newEntry,
           task,
@@ -256,7 +262,7 @@ const Timeline: React.FC = () => {
       const updated = await api.updateEntry(entryId, { date: newDate });
       if (updated) {
         // Enrich the updated entry
-        const task = tasks.find((t) => t.id === updated.task_id.toString());
+        const task = tasks.find((t) => Number(t.id) === updated.task_id);
         const enrichedEntry = {
           ...updated,
           task,
@@ -277,6 +283,22 @@ const Timeline: React.FC = () => {
     }
   };
 
+  const handleUpdateHours = async (entryId: string, newHours: number) => {
+    if (!api) return;
+
+    const updated = await api.updateEntry(entryId, { hours: newHours });
+    if (updated) {
+      // Enrich the updated entry
+      const task = tasks.find((t) => Number(t.id) === updated.task_id);
+      const enrichedEntry = {
+        ...updated,
+        task,
+        project: task?.project,
+      };
+      setEntries(entries.map((e) => (e.id === entryId ? enrichedEntry : e)));
+    }
+  };
+
   const handleEditEntry = (entry: TickEntry) => {
     setSelectedEntry(entry);
     setShowEditModal(true);
@@ -289,7 +311,7 @@ const Timeline: React.FC = () => {
 
   const handleEntrySaved = (entry: TickEntry) => {
     // Enrich the entry with task and project data
-    const task = tasks.find((t) => t.id === entry.task_id.toString());
+    const task = tasks.find((t) => Number(t.id) === entry.task_id);
     const enrichedEntry = {
       ...entry,
       task,
@@ -307,7 +329,7 @@ const Timeline: React.FC = () => {
   const handleRepeatedEntriesCreated = (newEntries: TickEntry[]) => {
     // Enrich all new entries with task and project data
     const enrichedEntries = newEntries.map((entry) => {
-      const task = tasks.find((t) => t.id === entry.task_id.toString());
+      const task = tasks.find((t) => Number(t.id) === entry.task_id);
       return {
         ...entry,
         task,
@@ -365,7 +387,8 @@ const Timeline: React.FC = () => {
               📍 Go to Today
             </button>
             <div style={styles.scrollHint}>
-              ← Scroll horizontally to view more days →
+              💡 Drag entry to move • Drag "Copy" to duplicate • Drag bottom
+              edge to resize • Scroll to view more days
             </div>
           </div>
         </div>
@@ -391,6 +414,7 @@ const Timeline: React.FC = () => {
                     onMove={handleMoveEntry}
                     onEdit={handleEditEntry}
                     onDelete={handleDeleteEntry}
+                    onUpdateHours={handleUpdateHours}
                     onAddEntry={handleAddEntry}
                     getDateLabel={getDateLabel}
                   />
