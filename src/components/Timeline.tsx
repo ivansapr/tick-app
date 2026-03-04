@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useAuth } from "../context/AuthContext";
@@ -15,77 +15,168 @@ const Timeline: React.FC = () => {
   const [tasks, setTasks] = useState<TickTask[]>([]);
   const [projects, setProjects] = useState<TickProject[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewDays, setViewDays] = useState(7);
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 14); // Start 14 days before today
+    return date;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14); // End 14 days after today
+    return date;
+  });
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRepeatedModal, setShowRepeatedModal] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<TickEntry | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
 
   const MAX_DAY_HOURS = 8;
+  const DAYS_TO_LOAD = 14; // Load 14 days at a time
 
-  const loadData = useCallback(async () => {
-    if (!api) return;
+  const loadData = useCallback(
+    async (start: Date, end: Date, append: boolean = false) => {
+      if (!api || isLoadingRef.current) return;
 
-    setLoading(true);
-    try {
-      const startDate = new Date(currentDate);
-      startDate.setDate(startDate.getDate() - Math.floor(viewDays / 2));
-      const endDate = new Date(currentDate);
-      endDate.setDate(endDate.getDate() + Math.floor(viewDays / 2));
+      isLoadingRef.current = true;
+      if (!append) setLoading(true);
+      else setIsLoadingMore(true);
 
-      const [entriesData, tasksData, projectsData] = await Promise.all([
-        api.getEntries(formatDate(startDate), formatDate(endDate)),
-        api.getTasks(),
-        api.getProjects(),
-      ]);
+      try {
+        const [entriesData, tasksData, projectsData] = await Promise.all([
+          api.getEntries(formatDate(start), formatDate(end)),
+          append
+            ? Promise.resolve(tasks.length ? tasks : null)
+            : api.getTasks(),
+          append
+            ? Promise.resolve(projects.length ? projects : null)
+            : api.getProjects(),
+        ]);
 
-      // Add colors to projects
-      const projectsWithColors = projectsData
-        ? projectsData.map((project) => ({
-            ...project,
-            color: generateProjectColor(project.id),
-          }))
-        : [];
+        // Add colors to projects
+        const projectsWithColors = projectsData
+          ? projectsData.map((project) => ({
+              ...project,
+              color: generateProjectColor(project.id),
+            }))
+          : [];
 
-      // Map tasks to projects
-      const tasksWithProjects = tasksData
-        ? tasksData.map((task) => ({
-            ...task,
-            project: projectsWithColors.find(
-              (p) => p.id === task.project_id.toString(),
-            ),
-          }))
-        : [];
+        // Map tasks to projects
+        const tasksWithProjects = tasksData
+          ? tasksData.map((task) => ({
+              ...task,
+              project: projectsWithColors.find(
+                (p) => p.id === task.project_id.toString(),
+              ),
+            }))
+          : [];
 
-      // Enrich entries with task and project data
-      const enrichedEntries = entriesData
-        ? entriesData.map((entry) => {
-            const task = tasksWithProjects.find(
-              (t) => t.id === entry.task_id.toString(),
-            );
-            return {
-              ...entry,
-              task,
-              project: task?.project,
-            };
-          })
-        : [];
+        // Enrich entries with task and project data
+        const enrichedEntries = entriesData
+          ? entriesData.map((entry) => {
+              const task = tasksWithProjects.find(
+                (t) => t.id === entry.task_id.toString(),
+              );
+              return {
+                ...entry,
+                task,
+                project: task?.project,
+              };
+            })
+          : [];
 
-      setEntries(enrichedEntries);
-      setTasks(tasksWithProjects);
-      setProjects(projectsWithColors);
-    } catch (error) {
-      console.error("Error loading data:", error);
-    } finally {
-      setLoading(false);
+        if (append) {
+          // Merge new entries, avoiding duplicates
+          setEntries((prev) => {
+            const entryMap = new Map(prev.map((e) => [e.id, e]));
+            enrichedEntries.forEach((e) => entryMap.set(e.id, e));
+            return Array.from(entryMap.values());
+          });
+        } else {
+          setEntries(enrichedEntries);
+          setTasks(tasksWithProjects);
+          setProjects(projectsWithColors);
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+        setIsLoadingMore(false);
+        isLoadingRef.current = false;
+      }
+    },
+    [api, tasks, projects],
+  );
+
+  // Initial load
+  useEffect(() => {
+    loadData(startDate, endDate, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Scroll to today on mount
+  useEffect(() => {
+    if (!loading && scrollContainerRef.current) {
+      const today = formatDate(new Date());
+      const todayElement = document.querySelector(`[data-date="${today}"]`);
+      if (todayElement) {
+        todayElement.scrollIntoView({ inline: "center", behavior: "smooth" });
+      }
     }
-  }, [api, currentDate, viewDays]);
+  }, [loading]);
+
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current || isLoadingRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+
+    // Load more days when scrolling near the end (right)
+    if (scrollLeft + clientWidth >= scrollWidth - 200) {
+      const newEndDate = new Date(endDate);
+      newEndDate.setDate(newEndDate.getDate() + DAYS_TO_LOAD);
+      setEndDate(newEndDate);
+
+      const loadStart = new Date(endDate);
+      loadStart.setDate(loadStart.getDate() + 1);
+      loadData(loadStart, newEndDate, true);
+    }
+
+    // Load more days when scrolling near the beginning (left)
+    if (scrollLeft <= 200) {
+      const newStartDate = new Date(startDate);
+      newStartDate.setDate(newStartDate.getDate() - DAYS_TO_LOAD);
+
+      const loadEnd = new Date(startDate);
+      loadEnd.setDate(loadEnd.getDate() - 1);
+
+      // Save scroll position
+      const previousScrollWidth = container.scrollWidth;
+
+      setStartDate(newStartDate);
+      loadData(newStartDate, loadEnd, true).then(() => {
+        // Restore scroll position after adding days to the left
+        requestAnimationFrame(() => {
+          const newScrollWidth = container.scrollWidth;
+          container.scrollLeft =
+            scrollLeft + (newScrollWidth - previousScrollWidth);
+        });
+      });
+    }
+  }, [startDate, endDate, loadData]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
 
   const formatDate = (date: Date): string => {
     const year = date.getFullYear();
@@ -114,13 +205,12 @@ const Timeline: React.FC = () => {
 
   const getDatesInView = (): Date[] => {
     const dates: Date[] = [];
-    const startDate = new Date(currentDate);
-    startDate.setDate(startDate.getDate() - Math.floor(viewDays / 2));
+    const current = new Date(startDate);
+    const end = new Date(endDate);
 
-    for (let i = 0; i < viewDays; i++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
-      dates.push(date);
+    while (current <= end) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
     }
     return dates;
   };
@@ -227,14 +317,14 @@ const Timeline: React.FC = () => {
     setEntries([...entries, ...enrichedEntries]);
   };
 
-  const navigateDate = (days: number) => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + days);
-    setCurrentDate(newDate);
-  };
-
   const goToToday = () => {
-    setCurrentDate(new Date());
+    if (scrollContainerRef.current) {
+      const today = formatDate(new Date());
+      const todayElement = document.querySelector(`[data-date="${today}"]`);
+      if (todayElement) {
+        todayElement.scrollIntoView({ inline: "center", behavior: "smooth" });
+      }
+    }
   };
 
   if (loading) {
@@ -271,38 +361,19 @@ const Timeline: React.FC = () => {
 
         <div style={styles.controls}>
           <div style={styles.navigation}>
-            <button
-              onClick={() => navigateDate(-viewDays)}
-              style={styles.navButton}
-            >
-              ← Previous
-            </button>
             <button onClick={goToToday} style={styles.todayButton}>
-              Today
+              📍 Go to Today
             </button>
-            <button
-              onClick={() => navigateDate(viewDays)}
-              style={styles.navButton}
-            >
-              Next →
-            </button>
-          </div>
-          <div style={styles.viewControls}>
-            <label style={styles.label}>View:</label>
-            <select
-              value={viewDays}
-              onChange={(e) => setViewDays(Number(e.target.value))}
-              style={styles.select}
-            >
-              <option value={3}>3 days</option>
-              <option value={5}>5 days</option>
-              <option value={7}>7 days</option>
-              <option value={14}>14 days</option>
-            </select>
+            <div style={styles.scrollHint}>
+              ← Scroll horizontally to view more days →
+            </div>
           </div>
         </div>
 
-        <div style={styles.timelineContainer}>
+        <div style={styles.timelineContainer} ref={scrollContainerRef}>
+          {isLoadingMore && (
+            <div style={styles.loadingIndicator}>Loading more days...</div>
+          )}
           <div style={styles.timeline}>
             {getDatesInView().map((date) => {
               const dateStr = formatDate(date);
@@ -310,19 +381,20 @@ const Timeline: React.FC = () => {
               const totalHours = getTotalHoursForDate(dateStr);
 
               return (
-                <DayColumn
-                  key={dateStr}
-                  date={date}
-                  dateStr={dateStr}
-                  entries={dayEntries}
-                  totalHours={totalHours}
-                  maxHours={MAX_DAY_HOURS}
-                  onMove={handleMoveEntry}
-                  onEdit={handleEditEntry}
-                  onDelete={handleDeleteEntry}
-                  onAddEntry={handleAddEntry}
-                  getDateLabel={getDateLabel}
-                />
+                <div key={dateStr} data-date={dateStr}>
+                  <DayColumn
+                    date={date}
+                    dateStr={dateStr}
+                    entries={dayEntries}
+                    totalHours={totalHours}
+                    maxHours={MAX_DAY_HOURS}
+                    onMove={handleMoveEntry}
+                    onEdit={handleEditEntry}
+                    onDelete={handleDeleteEntry}
+                    onAddEntry={handleAddEntry}
+                    getDateLabel={getDateLabel}
+                  />
+                </div>
               );
             })}
           </div>
@@ -442,56 +514,51 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderBottom: "1px solid #e2e8f0",
     padding: "16px 32px",
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
   },
   navigation: {
     display: "flex",
-    gap: "12px",
-  },
-  navButton: {
-    padding: "8px 16px",
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#4a5568",
-    backgroundColor: "white",
-    border: "1px solid #cbd5e0",
-    borderRadius: "6px",
-    cursor: "pointer",
-    transition: "all 0.2s",
+    alignItems: "center",
+    gap: "20px",
   },
   todayButton: {
-    padding: "8px 16px",
-    fontSize: "14px",
+    padding: "10px 24px",
+    fontSize: "15px",
     fontWeight: "600",
     color: "white",
     backgroundColor: "#667eea",
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "8px",
     cursor: "pointer",
     transition: "all 0.2s",
+    boxShadow: "0 2px 4px rgba(102, 126, 234, 0.2)",
   },
-  viewControls: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  label: {
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#4a5568",
-  },
-  select: {
-    padding: "8px 12px",
-    fontSize: "14px",
-    border: "1px solid #cbd5e0",
-    borderRadius: "6px",
-    backgroundColor: "white",
-    cursor: "pointer",
+  scrollHint: {
+    fontSize: "13px",
+    color: "#718096",
+    fontStyle: "italic",
   },
   timelineContainer: {
     padding: "32px",
     overflowX: "auto",
+    position: "relative",
+    scrollBehavior: "smooth",
+  },
+  loadingIndicator: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    padding: "12px 24px",
+    borderRadius: "8px",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#667eea",
+    zIndex: 100,
+    pointerEvents: "none",
   },
   timeline: {
     display: "flex",

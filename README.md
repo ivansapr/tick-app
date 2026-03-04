@@ -5,7 +5,7 @@ A Progressive Web App (PWA) for managing time entries with the Tick API. Feature
 ## Features
 
 - 🔐 **Authentication** - Secure login with Tick credentials
-- 📅 **Timeline View** - Horizontal timeline showing entries across multiple days
+- 📅 **Infinite Timeline** - Smooth horizontal scrolling through unlimited days
 - 🎯 **Visual Hours** - Entry cards sized proportionally to hours (max 8 hours per day)
 - 🖱️ **Drag & Drop** - Move entries between dates
 - ⌨️ **Drag & Copy** - Hold Ctrl while dragging to copy entries
@@ -13,6 +13,7 @@ A Progressive Web App (PWA) for managing time entries with the Tick API. Feature
 - ✏️ **Full CRUD** - Add, edit, and delete entries
 - 📱 **PWA Support** - Install as standalone app, offline capability
 - 💾 **Local Storage** - Automatic authentication persistence
+- ♾️ **Smart Loading** - Days load dynamically as you scroll
 
 ## Prerequisites
 
@@ -68,9 +69,10 @@ serve -s build
 
 ### Timeline Navigation
 
-- **Previous/Next** - Navigate through time periods
-- **Today** - Jump to current date
-- **View Selector** - Choose between 3, 5, 7, or 14 day views
+- **Horizontal Scroll** - Scroll left or right to navigate through days
+- **Go to Today** - Click to jump back to today's date (highlighted with 📍)
+- **Infinite Loading** - Days automatically load as you scroll
+- **Today Highlight** - Current day is highlighted with a border and pin icon
 
 ### Managing Entries
 
@@ -247,6 +249,7 @@ For issues or questions:
 
 ## Roadmap
 
+- [x] Infinite scroll timeline
 - [ ] Dark mode support
 - [ ] Keyboard shortcuts
 - [ ] Export to CSV/PDF
@@ -255,6 +258,7 @@ For issues or questions:
 - [ ] Multi-user support
 - [ ] Task templates
 - [ ] Notifications
+- [ ] Week/month view modes
 
 ---
 

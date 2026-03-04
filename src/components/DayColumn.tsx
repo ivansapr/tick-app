@@ -16,6 +16,13 @@ interface DayColumnProps {
   getDateLabel: (date: Date) => string;
 }
 
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const ItemType = "ENTRY";
 
 const DayColumn: React.FC<DayColumnProps> = ({
@@ -42,12 +49,32 @@ const DayColumn: React.FC<DayColumnProps> = ({
   });
 
   const heightPercent = Math.min((totalHours / maxHours) * 100, 100);
+  const isToday = formatDate(date) === formatDate(new Date());
 
   return (
-    <div style={styles.dayColumn}>
-      <div style={styles.dayHeader}>
-        <div style={styles.dayLabel}>{getDateLabel(date)}</div>
-        <div style={styles.dayDate}>{date.getDate()}</div>
+    <div
+      style={{
+        ...styles.dayColumn,
+        ...(isToday ? styles.todayColumn : {}),
+      }}
+    >
+      <div
+        style={{
+          ...styles.dayHeader,
+          ...(isToday ? styles.todayHeader : {}),
+        }}
+      >
+        <div style={styles.dayLabel}>
+          {getDateLabel(date)} {isToday && "📍"}
+        </div>
+        <div
+          style={{
+            ...styles.dayDate,
+            ...(isToday ? styles.todayDate : {}),
+          }}
+        >
+          {date.getDate()}
+        </div>
         <div style={styles.dayHours}>
           {totalHours.toFixed(1)}h / {maxHours}h
         </div>
@@ -106,10 +133,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     overflow: "hidden",
   },
+  todayColumn: {
+    boxShadow: "0 4px 16px rgba(102, 126, 234, 0.3)",
+    border: "2px solid #667eea",
+  },
   dayHeader: {
     padding: "16px",
     borderBottom: "2px solid #e2e8f0",
     backgroundColor: "#f7fafc",
+  },
+  todayHeader: {
+    backgroundColor: "#edf2f7",
+    borderBottom: "2px solid #667eea",
   },
   dayLabel: {
     fontSize: "16px",
@@ -122,6 +157,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: "700",
     color: "#667eea",
     marginBottom: "8px",
+  },
+  todayDate: {
+    color: "#5a67d8",
   },
   dayHours: {
     fontSize: "12px",
