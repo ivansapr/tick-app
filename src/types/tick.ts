@@ -11,7 +11,7 @@ export interface TickRole {
 }
 
 export interface TickProject {
-  id: string;
+  id: number;
   name: string;
   budget: number;
   date_closed?: string | null;
@@ -27,7 +27,7 @@ export interface TickProject {
 }
 
 export interface TickTask {
-  id: string;
+  id: number;
   name: string;
   budget: number;
   position: number;
@@ -48,7 +48,7 @@ export interface TickUser {
 }
 
 export interface TickEntry {
-  id: string;
+  id: number;
   date: string; // YYYY-MM-DD
   hours: number;
   notes: string;
@@ -104,7 +104,7 @@ export interface TickAPIConfig {
 }
 
 export interface RepeatOptions {
-  frequency: 'daily' | 'weekdays' | 'weekly' | 'monthly';
+  frequency: "daily" | "weekdays" | "weekly" | "monthly";
   endDate: string;
 }
 
