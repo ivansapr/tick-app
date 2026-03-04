@@ -31,6 +31,11 @@ const Timeline: React.FC = () => {
   const [selectedEntry, setSelectedEntry] = useState<TickEntry | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // Track which days have been manually toggled from their default state
+  // Weekends (Sat/Sun) are collapsed by default, weekdays are expanded
+  const [manuallyToggledDays, setManuallyToggledDays] = useState<Set<string>>(
+    new Set(),
+  );
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
@@ -219,8 +224,33 @@ const Timeline: React.FC = () => {
     return dates;
   };
 
-  const getEntriesForDate = (date: string): TickEntry[] => {
-    return entries.filter((entry) => entry.date === date);
+  const isWeekend = (date: Date): boolean => {
+    const day = date.getDay();
+    return day === 0 || day === 6; // Sunday or Saturday
+  };
+
+  const toggleDayCollapse = (dateStr: string) => {
+    // Toggle any day - track which days have been manually toggled
+    setManuallyToggledDays((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(dateStr)) {
+        newSet.delete(dateStr);
+      } else {
+        newSet.add(dateStr);
+      }
+      return newSet;
+    });
+  };
+
+  const getMonthYear = (date: Date): string => {
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const getEntriesForDate = (dateStr: string): TickEntry[] => {
+    return entries.filter((entry) => entry.date === dateStr);
   };
 
   const getTotalHoursForDate = (date: string): number => {
@@ -396,29 +426,72 @@ const Timeline: React.FC = () => {
             <div style={styles.loadingIndicator}>Loading more days...</div>
           )}
           <div style={styles.timeline}>
-            {getDatesInView().map((date) => {
-              const dateStr = formatDate(date);
-              const dayEntries = getEntriesForDate(dateStr);
-              const totalHours = getTotalHoursForDate(dateStr);
+            {(() => {
+              const dates = getDatesInView();
+              const elements: React.ReactElement[] = [];
+              let currentMonth = "";
 
-              return (
-                <div key={dateStr} data-date={dateStr}>
-                  <DayColumn
-                    date={date}
-                    dateStr={dateStr}
-                    entries={dayEntries}
-                    totalHours={totalHours}
-                    maxHours={MAX_DAY_HOURS}
-                    onMove={handleMoveEntry}
-                    onEdit={handleEditEntry}
-                    onDelete={handleDeleteEntry}
-                    onUpdateHours={handleUpdateHours}
-                    onAddEntry={handleAddEntry}
-                    getDateLabel={getDateLabel}
-                  />
-                </div>
-              );
-            })}
+              dates.forEach((date) => {
+                const dateStr = formatDate(date);
+                const dayEntries = getEntriesForDate(dateStr);
+                const totalHours = getTotalHoursForDate(dateStr);
+                // Weekends are collapsed by default, weekdays are expanded
+                // If manually toggled, flip the default state
+                const defaultCollapsed = isWeekend(date);
+                const isCollapsed = manuallyToggledDays.has(dateStr)
+                  ? !defaultCollapsed
+                  : defaultCollapsed;
+                const monthYear = getMonthYear(date);
+                const isNewMonth = monthYear !== currentMonth;
+
+                if (isNewMonth) {
+                  // Add month gap if not first month
+                  if (currentMonth !== "") {
+                    elements.push(
+                      <div
+                        key={`gap-${monthYear}`}
+                        style={styles.monthDivider}
+                      />,
+                    );
+                  }
+
+                  // Add month header
+                  elements.push(
+                    <div
+                      key={`header-${monthYear}`}
+                      style={styles.monthHeaderContainer}
+                    >
+                      <div style={styles.monthHeader}>{monthYear}</div>
+                    </div>,
+                  );
+
+                  currentMonth = monthYear;
+                }
+
+                // Add day column
+                elements.push(
+                  <div key={dateStr} data-date={dateStr}>
+                    <DayColumn
+                      date={date}
+                      dateStr={dateStr}
+                      entries={dayEntries}
+                      totalHours={totalHours}
+                      maxHours={MAX_DAY_HOURS}
+                      onMove={handleMoveEntry}
+                      onEdit={handleEditEntry}
+                      onDelete={handleDeleteEntry}
+                      onUpdateHours={handleUpdateHours}
+                      onAddEntry={handleAddEntry}
+                      getDateLabel={getDateLabel}
+                      isCollapsed={isCollapsed}
+                      onToggleCollapse={() => toggleDayCollapse(dateStr)}
+                    />
+                  </div>,
+                );
+              });
+
+              return elements;
+            })()}
           </div>
         </div>
 
@@ -586,6 +659,36 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     gap: "16px",
     minWidth: "min-content",
+    alignItems: "flex-start",
+  },
+  monthHeaderContainer: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignSelf: "stretch",
+    position: "sticky",
+    left: "32px",
+    zIndex: 10,
+    minHeight: "700px",
+  },
+  monthHeader: {
+    backgroundColor: "#667eea",
+    color: "white",
+    padding: "16px 24px",
+    borderRadius: "8px",
+    fontSize: "18px",
+    fontWeight: "700",
+    boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
+    textAlign: "center",
+    whiteSpace: "nowrap",
+    minWidth: "150px",
+  },
+  monthDivider: {
+    width: "2px",
+    backgroundColor: "#cbd5e0",
+    alignSelf: "stretch",
+    margin: "0 16px",
+    borderRadius: "1px",
   },
 };
 
