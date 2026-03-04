@@ -11,12 +11,6 @@ interface TimelineEntryProps {
   onUpdateHours: (entryId: number, newHours: number) => void;
 }
 
-interface DragItem {
-  type: string;
-  id: string;
-  date: string;
-}
-
 const ItemType = "ENTRY";
 
 const TimelineEntry: React.FC<TimelineEntryProps> = ({
@@ -83,7 +77,6 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({
     }),
   });
 
-  const heightPercent = (entry.hours / maxHours) * 100;
   const projectColor =
     entry.project?.color || entry.task?.project?.color || "#667eea";
 
