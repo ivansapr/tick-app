@@ -8,6 +8,7 @@ import DayColumn from "./DayColumn";
 import AddEntryModal from "./AddEntryModal";
 import EditEntryModal from "./EditEntryModal";
 import AddRepeatedEntryModal from "./AddRepeatedEntryModal";
+import FillGapsModal from "./FillGapsModal";
 
 const Timeline: React.FC = () => {
   const { api, logout, subscriptionName } = useAuth();
@@ -28,6 +29,7 @@ const Timeline: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRepeatedModal, setShowRepeatedModal] = useState(false);
+  const [showFillGapsModal, setShowFillGapsModal] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<TickEntry | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -367,6 +369,24 @@ const Timeline: React.FC = () => {
     setEntries([...entries, ...enrichedEntries]);
   };
 
+  const handleGapsFilled = (newEntries: TickEntry[]) => {
+    const enrichedEntries = newEntries.map((entry) => {
+      const task = tasks.find((t) => t.id === entry.task_id);
+      return {
+        ...entry,
+        task,
+        project: task?.project,
+      };
+    });
+    setEntries((prev) => {
+      const entryMap = new Map(prev.map((e) => [e.id, e]));
+      enrichedEntries.forEach((e) => entryMap.set(e.id, e));
+      return Array.from(entryMap.values()).sort((a, b) =>
+        a.date.localeCompare(b.date),
+      );
+    });
+  };
+
   const goToToday = () => {
     if (scrollContainerRef.current) {
       const today = formatDate(new Date());
@@ -397,6 +417,12 @@ const Timeline: React.FC = () => {
             )}
           </div>
           <div style={styles.headerRight}>
+            <button
+              onClick={() => setShowFillGapsModal(true)}
+              style={styles.fillGapsButton}
+            >
+              ⚡ Fill Gaps
+            </button>
             <button
               onClick={() => setShowRepeatedModal(true)}
               style={styles.secondaryButton}
@@ -529,6 +555,17 @@ const Timeline: React.FC = () => {
             onSave={handleRepeatedEntriesCreated}
           />
         )}
+
+        {showFillGapsModal && (
+          <FillGapsModal
+            tasks={tasks}
+            projects={projects}
+            entries={entries}
+            api={api!}
+            onClose={() => setShowFillGapsModal(false)}
+            onSave={handleGapsFilled}
+          />
+        )}
       </div>
     </DndProvider>
   );
@@ -589,6 +626,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: "#667eea",
     backgroundColor: "white",
     border: "2px solid #667eea",
+    borderRadius: "8px",
+    cursor: "pointer",
+    transition: "all 0.2s",
+  },
+  fillGapsButton: {
+    padding: "10px 20px",
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#38a169",
+    backgroundColor: "white",
+    border: "2px solid #38a169",
     borderRadius: "8px",
     cursor: "pointer",
     transition: "all 0.2s",
