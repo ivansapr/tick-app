@@ -9,6 +9,7 @@ interface AddEntryModalProps {
   api: TickAPI;
   onClose: () => void;
   onSave: (entry: TickEntry) => void;
+  onRefetch?: () => Promise<void>;
 }
 
 const AddEntryModal: React.FC<AddEntryModalProps> = ({
@@ -18,17 +19,50 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
   api,
   onClose,
   onSave,
+  onRefetch,
 }) => {
   const [taskId, setTaskId] = useState<string>("");
   const [hours, setHours] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [refetching, setRefetching] = useState(false);
   const [error, setError] = useState("");
+
+  const handleRefetch = async () => {
+    if (!onRefetch) return;
+    setRefetching(true);
+    setError("");
+    try {
+      await onRefetch();
+      // Clear selections only if they no longer exist in the refreshed data
+      // (handled by parent updating tasks/projects props)
+    } catch {
+      setError("Failed to refresh projects and tasks");
+    } finally {
+      setRefetching(false);
+    }
+  };
 
   const filteredTasks = selectedProjectId
     ? tasks.filter((task) => task.project_id.toString() === selectedProjectId)
     : tasks;
+
+  // Clear stale selections when tasks/projects props change after a refetch
+  React.useEffect(() => {
+    if (taskId && !tasks.find((t) => t.id.toString() === taskId)) {
+      setTaskId("");
+    }
+  }, [tasks, taskId]);
+
+  React.useEffect(() => {
+    if (
+      selectedProjectId &&
+      !projects.find((p) => p.id.toString() === selectedProjectId)
+    ) {
+      setSelectedProjectId("");
+    }
+  }, [projects, selectedProjectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +107,25 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <h2 style={styles.title}>Add Entry</h2>
-          <button onClick={onClose} style={styles.closeButton}>
-            ×
-          </button>
+          <div style={styles.headerActions}>
+            {onRefetch && (
+              <button
+                type="button"
+                onClick={handleRefetch}
+                disabled={refetching || loading}
+                style={{
+                  ...styles.refetchButton,
+                  ...(refetching || loading ? styles.refetchButtonDisabled : {}),
+                }}
+                title="Refresh projects and tasks"
+              >
+                {refetching ? "⟳ Refreshing..." : "⟳ Refresh"}
+              </button>
+            )}
+            <button onClick={onClose} style={styles.closeButton}>
+              ×
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} style={styles.form}>
@@ -214,6 +264,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "20px 24px",
     borderBottom: "1px solid #e2e8f0",
   },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
   title: {
     fontSize: "20px",
     fontWeight: "700",
@@ -317,6 +372,22 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   submitButtonDisabled: {
     backgroundColor: "#a0aec0",
+    cursor: "not-allowed",
+  },
+  refetchButton: {
+    padding: "6px 12px",
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#667eea",
+    backgroundColor: "white",
+    border: "1px solid #667eea",
+    borderRadius: "6px",
+    cursor: "pointer",
+    transition: "all 0.2s",
+  },
+  refetchButtonDisabled: {
+    color: "#a0aec0",
+    borderColor: "#a0aec0",
     cursor: "not-allowed",
   },
 };

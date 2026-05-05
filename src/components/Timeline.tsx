@@ -10,7 +10,7 @@ import EditEntryModal from "./EditEntryModal";
 import AddRepeatedEntryModal from "./AddRepeatedEntryModal";
 import FillGapsModal from "./FillGapsModal";
 
-const Timeline: React.FC = () => {
+const Timeline: React.FC<{ onNavigateToProjects?: () => void }> = ({ onNavigateToProjects }) => {
   const { api, logout, subscriptionName } = useAuth();
   const [entries, setEntries] = useState<TickEntry[]>([]);
   const [tasks, setTasks] = useState<TickTask[]>([]);
@@ -122,6 +122,28 @@ const Timeline: React.FC = () => {
     },
     [api, tasks, projects],
   );
+
+  const handleRefetchTasksAndProjects = useCallback(async () => {
+    if (!api) return;
+    const [tasksData, projectsData] = await Promise.all([
+      api.getTasks(),
+      api.getProjects(),
+    ]);
+    const projectsWithColors = projectsData
+      ? projectsData.map((project) => ({
+          ...project,
+          color: generateProjectColor(project.id),
+        }))
+      : [];
+    const tasksWithProjects = tasksData
+      ? tasksData.map((task) => ({
+          ...task,
+          project: projectsWithColors.find((p) => p.id === task.project_id),
+        }))
+      : [];
+    setProjects(projectsWithColors);
+    setTasks(tasksWithProjects);
+  }, [api]);
 
   // Initial load
   useEffect(() => {
@@ -417,6 +439,14 @@ const Timeline: React.FC = () => {
             )}
           </div>
           <div style={styles.headerRight}>
+            {onNavigateToProjects && (
+              <button
+                onClick={onNavigateToProjects}
+                style={styles.projectsButton}
+              >
+                📋 Projects & Tasks
+              </button>
+            )}
             <button
               onClick={() => setShowFillGapsModal(true)}
               style={styles.fillGapsButton}
@@ -529,6 +559,7 @@ const Timeline: React.FC = () => {
             api={api!}
             onClose={() => setShowAddModal(false)}
             onSave={handleEntrySaved}
+            onRefetch={handleRefetchTasksAndProjects}
           />
         )}
 
@@ -618,6 +649,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   subtitle: {
     fontSize: "14px",
     color: "#718096",
+  },
+  projectsButton: {
+    padding: "10px 20px",
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#805ad5",
+    backgroundColor: "white",
+    border: "2px solid #805ad5",
+    borderRadius: "8px",
+    cursor: "pointer",
+    transition: "all 0.2s",
   },
   secondaryButton: {
     padding: "10px 20px",
