@@ -381,7 +381,9 @@ const Timeline: React.FC = () => {
     setEntries((prev) => {
       const entryMap = new Map(prev.map((e) => [e.id, e]));
       enrichedEntries.forEach((e) => entryMap.set(e.id, e));
-      return Array.from(entryMap.values());
+      return Array.from(entryMap.values()).sort((a, b) =>
+        a.date.localeCompare(b.date),
+      );
     });
   };
 

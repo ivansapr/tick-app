@@ -104,20 +104,18 @@ const FillGapsModal: React.FC<FillGapsModalProps> = ({
     setLoading(true);
 
     try {
-      const createdEntries: TickEntry[] = [];
-
-      for (const gap of dayGaps) {
-        const entry = await api.createEntry({
-          task_id: parseInt(taskId),
-          hours: gap.gapHours,
-          notes,
-          date: gap.date,
-        });
-
-        if (entry) {
-          createdEntries.push(entry);
-        }
-      }
+      const createdEntries = (
+        await Promise.all(
+          dayGaps.map((gap) =>
+            api.createEntry({
+              task_id: parseInt(taskId),
+              hours: gap.gapHours,
+              notes,
+              date: gap.date,
+            }),
+          ),
+        )
+      ).filter((e): e is TickEntry => e !== null);
 
       if (createdEntries.length > 0) {
         onSave(createdEntries);
