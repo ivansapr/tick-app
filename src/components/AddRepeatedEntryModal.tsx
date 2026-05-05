@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { TickAPI } from "../lib/api";
 import { TickTask, TickProject, TickEntry } from "../types/tick";
 import { formatDate } from "../lib/utils";
+import { trackEvent } from "../lib/analytics";
 
 interface AddRepeatedEntryModalProps {
   tasks: TickTask[];
@@ -109,6 +110,7 @@ const AddRepeatedEntryModal: React.FC<AddRepeatedEntryModalProps> = ({
       }
 
       if (createdEntries.length > 0) {
+        trackEvent('repeated_entries_created', { count: createdEntries.length });
         onSave(createdEntries);
         onClose();
       } else {

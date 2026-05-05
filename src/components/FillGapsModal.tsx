@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { TickAPI } from "../lib/api";
 import { TickTask, TickProject, TickEntry } from "../types/tick";
 import { formatDate } from "../lib/utils";
+import { trackEvent } from "../lib/analytics";
 
 interface FillGapsModalProps {
   tasks: TickTask[];
@@ -119,6 +120,7 @@ const FillGapsModal: React.FC<FillGapsModalProps> = ({
       ).filter((e): e is TickEntry => e !== null);
 
       if (createdEntries.length > 0) {
+        trackEvent('gaps_filled', { count: createdEntries.length });
         onSave(createdEntries);
         onClose();
       } else {

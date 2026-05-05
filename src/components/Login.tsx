@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { trackEvent } from '../lib/analytics';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +17,10 @@ const Login: React.FC = () => {
     try {
       const success = await login(email, password);
       if (!success) {
+        trackEvent('login', { success: false });
         setError('Invalid email or password. Please try again.');
+      } else {
+        trackEvent('login', { success: true });
       }
     } catch (err) {
       setError('An error occurred during login. Please try again.');

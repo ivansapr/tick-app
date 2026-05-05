@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { TickAPI } from "../lib/api";
 import { TickTask, TickProject, TickEntry } from "../types/tick";
+import { trackEvent } from "../lib/analytics";
 
 interface EditEntryModalProps {
   entry: TickEntry;
@@ -59,6 +60,7 @@ const EditEntryModal: React.FC<EditEntryModalProps> = ({
       });
 
       if (updatedEntry) {
+        trackEvent('entry_updated', { hours: hoursNum, task_id: parseInt(taskId) });
         onSave(updatedEntry);
         onClose();
       } else {
