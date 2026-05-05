@@ -160,6 +160,32 @@ export class TickAPI {
     }
   }
 
+  async getTasksByProject(projectId: number): Promise<TickTask[] | null> {
+    try {
+      const response = await fetch(
+        this.getApiUrl(`/projects/${projectId}/tasks.json`),
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        },
+      );
+
+      if (!response.ok) {
+        console.error(
+          "Failed to fetch tasks for project:",
+          projectId,
+          response.statusText,
+        );
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get tasks by project error:", error);
+      return null;
+    }
+  }
+
   async deleteTask(id: number): Promise<boolean> {
     try {
       const response = await fetch(this.getApiUrl(`/tasks/${id}.json`), {
