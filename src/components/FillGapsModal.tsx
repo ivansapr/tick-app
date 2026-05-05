@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { TickAPI } from "../lib/api";
 import { TickTask, TickProject, TickEntry } from "../types/tick";
+import { formatDate } from "../lib/utils";
 
 interface FillGapsModalProps {
   tasks: TickTask[];
@@ -25,7 +26,7 @@ const FillGapsModal: React.FC<FillGapsModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = formatDate(new Date());
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [taskId, setTaskId] = useState<string>("");
@@ -55,7 +56,7 @@ const FillGapsModal: React.FC<FillGapsModalProps> = ({
       const dayOfWeek = current.getDay();
       // Skip weekends
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        const dateStr = current.toISOString().split("T")[0];
+        const dateStr = formatDate(current);
         const loggedHours = entries
           .filter((e) => e.date === dateStr)
           .reduce((sum, e) => sum + e.hours, 0);
