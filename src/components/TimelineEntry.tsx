@@ -9,6 +9,7 @@ interface TimelineEntryProps {
   onEdit: (entry: TickEntry) => void;
   onDelete: (entryId: number) => void;
   onUpdateHours: (entryId: number, newHours: number) => void;
+  onResizePreview?: (entryId: number, hours: number | null) => void;
 }
 
 const ItemType = "ENTRY";
@@ -20,6 +21,7 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({
   onEdit,
   onDelete,
   onUpdateHours,
+  onResizePreview,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const duplicateRef = useRef<HTMLButtonElement>(null);
@@ -111,10 +113,12 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({
       // Round to nearest 0.5 (30 minutes)
       const roundedHours = Math.round(newHours * 2) / 2;
       setCurrentResizeHours(roundedHours);
+      onResizePreview?.(entry.id, roundedHours);
     };
 
     const handleResizeEnd = () => {
       setIsResizing(false);
+      onResizePreview?.(entry.id, null);
       if (currentResizeHours !== entry.hours) {
         onUpdateHours(entry.id, currentResizeHours);
       }

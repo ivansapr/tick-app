@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import { TickEntry } from "../types/tick";
 import TimelineEntry from "./TimelineEntry";
@@ -44,6 +44,20 @@ const DayColumn: React.FC<DayColumnProps> = ({
   onToggleCollapse,
 }) => {
   const dropRef = useRef<HTMLDivElement>(null);
+  const [resizePreview, setResizePreview] = useState<{
+    entryId: number;
+    hours: number;
+  } | null>(null);
+
+  const handleResizePreview = (entryId: number, hours: number | null) => {
+    setResizePreview(hours !== null ? { entryId, hours } : null);
+  };
+
+  const displayTotalHours = resizePreview
+    ? totalHours -
+      (entries.find((e) => e.id === resizePreview.entryId)?.hours ?? 0) +
+      resizePreview.hours
+    : totalHours;
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: ItemType,
     drop: () => {
@@ -57,7 +71,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
 
   drop(dropRef);
 
-  const heightPercent = Math.min((totalHours / maxHours) * 100, 100);
+  const heightPercent = Math.min((displayTotalHours / maxHours) * 100, 100);
   const isToday = formatDate(date) === formatDate(new Date());
   const dayLabel = getDateLabel(date);
 
@@ -76,7 +90,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
           <div style={styles.rotatedText}>
             <div style={styles.rotatedDay}>{dayLabel}</div>
             <div style={styles.rotatedDate}>{date.getDate()}</div>
-            <div style={styles.rotatedHours}>{totalHours.toFixed(1)}h</div>
+            <div style={styles.rotatedHours}>{displayTotalHours.toFixed(1)}h</div>
           </div>
         </div>
         <div style={styles.expandIndicator}>▶</div>
@@ -132,7 +146,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
           </div>
         </div>
         <div style={styles.dayHours}>
-          {totalHours.toFixed(1)}h / {maxHours}h
+          {displayTotalHours.toFixed(1)}h / {maxHours}h
         </div>
       </div>
 
@@ -163,6 +177,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onUpdateHours={onUpdateHours}
+                onResizePreview={handleResizePreview}
               />
             ))}
           </div>
