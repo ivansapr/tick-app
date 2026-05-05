@@ -27,7 +27,7 @@ const ProjectsScreen: React.FC<ProjectsScreenProps> = ({
       const projectsData = await api.getProjects();
 
       if (!projectsData) {
-        setError("Failed to load projects and tasks. Please try again.");
+        setError("Failed to load projects. Please try again.");
         return;
       }
 
