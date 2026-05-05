@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { TickAPI } from "../lib/api";
 import { TickTask, TickProject, TickEntry } from "../types/tick";
+import { formatDate } from "../lib/utils";
 
 interface AddRepeatedEntryModalProps {
   tasks: TickTask[];
@@ -39,13 +40,13 @@ const AddRepeatedEntryModal: React.FC<AddRepeatedEntryModalProps> = ({
     freq: "daily" | "weekdays" | "weekly" | "monthly",
   ): string[] => {
     const dates: string[] = [];
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
+    const startDateObj = new Date(start + "T00:00:00");
+    const endDateObj = new Date(end + "T00:00:00");
 
     let currentDate = new Date(startDateObj);
 
     while (currentDate <= endDateObj) {
-      const dateStr = currentDate.toISOString().split("T")[0];
+      const dateStr = formatDate(currentDate);
 
       if (freq === "daily") {
         dates.push(dateStr);
