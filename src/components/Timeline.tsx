@@ -4,6 +4,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { useAuth } from "../context/AuthContext";
 import { TickEntry, TickTask, TickProject } from "../types/tick";
 import { generateProjectColor } from "../lib/utils";
+import { trackEvent } from "../lib/analytics";
 import DayColumn from "./DayColumn";
 import AddEntryModal from "./AddEntryModal";
 import EditEntryModal from "./EditEntryModal";
@@ -286,6 +287,7 @@ const Timeline: React.FC = () => {
           project: task?.project,
         };
         setEntries([...entries, enrichedEntry]);
+        trackEvent('entry_copied', { to_date: newDate });
       }
     } else {
       // Move the entry
@@ -299,6 +301,7 @@ const Timeline: React.FC = () => {
           project: task?.project,
         };
         setEntries(entries.map((e) => (e.id === entryId ? enrichedEntry : e)));
+        trackEvent('entry_moved', { to_date: newDate });
       }
     }
   };
@@ -310,6 +313,7 @@ const Timeline: React.FC = () => {
     const success = await api.deleteEntry(entryId);
     if (success) {
       setEntries(entries.filter((e) => e.id !== entryId));
+      trackEvent('entry_deleted');
     }
   };
 
@@ -332,6 +336,11 @@ const Timeline: React.FC = () => {
   const handleEditEntry = (entry: TickEntry) => {
     setSelectedEntry(entry);
     setShowEditModal(true);
+  };
+
+  const handleLogout = () => {
+    trackEvent('logout');
+    logout();
   };
 
   const handleAddEntry = (date: string) => {
@@ -429,7 +438,7 @@ const Timeline: React.FC = () => {
             >
               + Repeated Entry
             </button>
-            <button onClick={logout} style={styles.logoutButton}>
+            <button onClick={handleLogout} style={styles.logoutButton}>
               Logout
             </button>
           </div>
