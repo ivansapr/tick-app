@@ -24,12 +24,9 @@ const ProjectsScreen: React.FC<ProjectsScreenProps> = ({
     setLoading(true);
     setError("");
     try {
-      const [projectsData, tasksData] = await Promise.all([
-        api.getProjects(),
-        api.getTasks(),
-      ]);
+      const projectsData = await api.getProjects();
 
-      if (!projectsData || !tasksData) {
+      if (!projectsData) {
         setError("Failed to load projects and tasks. Please try again.");
         return;
       }
@@ -39,7 +36,12 @@ const ProjectsScreen: React.FC<ProjectsScreenProps> = ({
         color: generateProjectColor(project.id),
       }));
 
-      const tasksWithProjects = tasksData.map((task) => ({
+      const taskArrays = await Promise.all(
+        projectsWithColors.map((p) => api.getTasksByProject(p.id)),
+      );
+      const allTasks = taskArrays.flatMap((arr) => arr ?? []);
+
+      const tasksWithProjects = allTasks.map((task) => ({
         ...task,
         project: projectsWithColors.find((p) => p.id === task.project_id),
       }));

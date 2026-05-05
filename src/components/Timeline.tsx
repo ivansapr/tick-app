@@ -54,11 +54,8 @@ const Timeline: React.FC<{ onNavigateToProjects?: () => void }> = ({ onNavigateT
       else setIsLoadingMore(true);
 
       try {
-        const [entriesData, tasksData, projectsData] = await Promise.all([
+        const [entriesData, projectsData] = await Promise.all([
           api.getEntries(formatDate(start), formatDate(end)),
-          append
-            ? Promise.resolve(tasks.length ? tasks : null)
-            : api.getTasks(),
           append
             ? Promise.resolve(projects.length ? projects : null)
             : api.getProjects(),
@@ -72,13 +69,18 @@ const Timeline: React.FC<{ onNavigateToProjects?: () => void }> = ({ onNavigateT
             }))
           : [];
 
-        // Map tasks to projects
-        const tasksWithProjects = tasksData
-          ? tasksData.map((task) => ({
-              ...task,
-              project: projectsWithColors.find((p) => p.id === task.project_id),
-            }))
-          : [];
+        // Map tasks to projects — fetch all tasks per project when not appending
+        let tasksWithProjects = append && tasks.length ? tasks : [];
+        if (!append || !tasks.length) {
+          const taskArrays = await Promise.all(
+            projectsWithColors.map((p) => api.getTasksByProject(p.id)),
+          );
+          const allTasks = taskArrays.flatMap((arr) => arr ?? []);
+          tasksWithProjects = allTasks.map((task) => ({
+            ...task,
+            project: projectsWithColors.find((p) => p.id === task.project_id),
+          }));
+        }
 
         // Enrich entries with task and project data
         const enrichedEntries = entriesData
@@ -125,22 +127,21 @@ const Timeline: React.FC<{ onNavigateToProjects?: () => void }> = ({ onNavigateT
 
   const handleRefetchTasksAndProjects = useCallback(async () => {
     if (!api) return;
-    const [tasksData, projectsData] = await Promise.all([
-      api.getTasks(),
-      api.getProjects(),
-    ]);
+    const projectsData = await api.getProjects();
     const projectsWithColors = projectsData
       ? projectsData.map((project) => ({
           ...project,
           color: generateProjectColor(project.id),
         }))
       : [];
-    const tasksWithProjects = tasksData
-      ? tasksData.map((task) => ({
-          ...task,
-          project: projectsWithColors.find((p) => p.id === task.project_id),
-        }))
-      : [];
+    const taskArrays = await Promise.all(
+      projectsWithColors.map((p) => api.getTasksByProject(p.id)),
+    );
+    const allTasks = taskArrays.flatMap((arr) => arr ?? []);
+    const tasksWithProjects = allTasks.map((task) => ({
+      ...task,
+      project: projectsWithColors.find((p) => p.id === task.project_id),
+    }));
     setProjects(projectsWithColors);
     setTasks(tasksWithProjects);
   }, [api]);
