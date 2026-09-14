@@ -69,23 +69,17 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      "/api": {
+      // Tickspot's API rejects browser User-Agents; browsers won't let
+      // client JS override that header, so this proxy sets it instead
+      // (server.js does the same for production).
+      "/tickapi": {
         target: "https://www.tickspot.com",
         changeOrigin: true,
-        rewrite: (path: string) => path.replace(/^\/api/, ""),
-        configure: (proxy: any, _options: any) => {
-          proxy.on("error", (err: any, _req: any, _res: any) => {
-            console.log("proxy error", err);
-          });
-          proxy.on("proxyReq", (proxyReq: any, req: any, _res: any) => {
-            console.log("Sending Request to the Target:", req.method, req.url);
-          });
-          proxy.on("proxyRes", (proxyRes: any, req: any, _res: any) => {
-            console.log(
-              "Received Response from the Target:",
-              proxyRes.statusCode,
-              req.url,
-            );
+        rewrite: (path: string) => path.replace(/^\/tickapi/, ""),
+        configure: (proxy: any) => {
+          proxy.on("proxyReq", (proxyReq: any, req: any) => {
+            const email = req.headers["x-tick-email"] || "unknown";
+            proxyReq.setHeader("User-Agent", `TickClient (${email})`);
           });
         },
       },

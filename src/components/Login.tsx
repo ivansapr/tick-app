@@ -23,7 +23,7 @@ const Login: React.FC = () => {
         trackEvent('login', { success: true });
       }
     } catch (err) {
-      setError('An error occurred during login. Please try again.');
+      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

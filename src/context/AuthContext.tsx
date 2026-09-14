@@ -56,38 +56,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const tickApi = new TickAPI({
-        email,
-        password,
-      });
+    const tickApi = new TickAPI({
+      email,
+      password,
+    });
 
-      const roles = await tickApi.authenticate();
+    const roles = await tickApi.authenticate();
 
-      console.log("Authentication response:", roles);
-
-      if (!roles || roles.length === 0) {
-        console.error("No roles returned from authentication");
-        return false;
-      }
-
-      console.log("First role:", roles[0]);
-
-      // If only one subscription, auto-select it
-      if (roles.length === 1) {
-        selectSubscription(roles[0], email);
-        return true;
-      }
-
-      // Multiple subscriptions - save email and wait for selection
-      setEmail(email);
-      setApi(tickApi);
-
-      return true;
-    } catch (error) {
-      console.error("Login error:", error);
-      return false;
+    if (!roles || roles.length === 0) {
+      throw new Error("No subscriptions found for this account");
     }
+
+    // If only one subscription, auto-select it
+    if (roles.length === 1) {
+      selectSubscription(roles[0], email);
+      return true;
+    }
+
+    // Multiple subscriptions - save email and wait for selection
+    setEmail(email);
+    setApi(tickApi);
+
+    return true;
   };
 
   const selectSubscription = (role: TickRole, userEmail?: string) => {

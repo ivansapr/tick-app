@@ -22,7 +22,10 @@ export class TickAPI {
     this.password = config.password;
     this.token = config.token;
     this.subscriptionId = config.subscriptionId;
-    this.baseUrl = config.baseUrl || 'https://www.tickspot.com';
+    // Requests are relayed through our own server (server.js / vite proxy)
+    // because Tickspot's API rejects browser User-Agents, and browsers
+    // won't let client JS override that header.
+    this.baseUrl = config.baseUrl || '/tickapi';
   }
 
   private getAuthHeader(): string {
@@ -39,8 +42,11 @@ export class TickAPI {
   private getHeaders(): HeadersInit {
     return {
       Authorization: this.getAuthHeader(),
-      "User-Agent": `TickClient (${this.email})`,
       "Content-Type": "application/json",
+      // Tells the proxy (server.js / vite dev proxy) what to put in the
+      // outgoing User-Agent it sends to Tickspot, since Tickspot requires
+      // a `TickClient (<email>)` pattern and rejects generic User-Agents.
+      "X-Tick-Email": this.email,
     };
   }
 
@@ -52,25 +58,28 @@ export class TickAPI {
   }
 
   async authenticate(): Promise<TickRole[] | null> {
+    let response: Response;
     try {
-      const response = await fetch(`${this.baseUrl}/api/v2/roles.json`, {
+      response = await fetch(`${this.baseUrl}/api/v2/roles.json`, {
         method: "GET",
         headers: {
           Authorization: this.getAuthHeader(),
-          "User-Agent": `TickClient (${this.email})`,
+          "X-Tick-Email": this.email,
         },
       });
-
-      if (!response.ok) {
-        console.error("Authentication failed:", response.statusText);
-        return null;
-      }
-
-      return await response.json();
     } catch (error) {
-      console.error("Authentication error:", error);
-      return null;
+      throw new Error(
+        `Network error reaching Tick: ${(error as Error).message}`,
+      );
     }
+
+    if (!response.ok) {
+      throw new Error(
+        `Authentication failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.json();
   }
 
   setSubscription(subscriptionId: string, token: string): void {
