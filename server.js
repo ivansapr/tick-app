@@ -2,13 +2,15 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mountMcp } from "./server/mcp.js";
+import { mountOAuth } from "./server/oauth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TICKSPOT_BASE_URL = "https://www.tickspot.com";
 
 const app = express();
 app.use(express.json());
-mountMcp(app);
+const oauth = mountOAuth(app, { publicUrl: process.env.MCP_PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}` });
+mountMcp(app, { oauth });
 
 // Tickspot's API rejects requests whose User-Agent looks like a browser.
 // Browsers refuse to let client JS override User-Agent, so this call has

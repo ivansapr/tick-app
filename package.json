@@ -9,7 +9,7 @@
     "start": "node server.js",
     "preview": "vite preview",
     "test": "vitest",
-    "test:mcp": "node --test server/mcp.test.js"
+    "test:mcp": "node --test server/*.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",

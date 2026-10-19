@@ -2,12 +2,7 @@
   "mcpServers": {
     "tick": {
       "type": "http",
-      "url": "${TICK_MCP_URL:-http://localhost:3000/mcp}",
-      "headers": {
-        "Authorization": "Token token=${TICK_TOKEN}",
-        "X-Tick-Subscription-Id": "${TICK_SUBSCRIPTION_ID}",
-        "X-Tick-Email": "${TICK_EMAIL}"
-      }
+      "url": "${TICK_MCP_URL:-http://localhost:3000/mcp}"
     }
   }
 }

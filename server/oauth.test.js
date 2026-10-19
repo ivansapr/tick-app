@@ -1,0 +1,76 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import express from 'express';
+import { mountOAuth } from './oauth.js';
+import { mountMcp } from './mcp.js';
+
+test('browser sign-in, consent, PKCE, resource binding, refresh and revocation', async t => {
+  const app = express();
+  app.use(express.json());
+  const upstream = [];
+  const fetchImpl = async (url, options) => {
+    upstream.push({ url: String(url), ...options });
+    return Response.json(String(url).endsWith('/roles.json') ? [
+      { subscription_id: 123, company: 'Example <team>', api_token: 'tick-secret' },
+      { subscription_id: 456, company: 'Other', api_token: 'other-secret' },
+    ] : [{ id: 9 }]);
+  };
+  const oauth = mountOAuth(app, { publicUrl: 'http://localhost:3000', fetchImpl });
+  mountMcp(app, { oauth, fetchImpl });
+  const listener = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => listener.once('listening', resolve));
+  t.after(() => new Promise(resolve => listener.close(resolve)));
+  const base = `http://127.0.0.1:${listener.address().port}`;
+  const request = (path, options) => fetch(`${base}${path}`, { redirect: 'manual', ...options });
+  const post = (path, data, cookie) => request(path, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...(cookie ? { Cookie: cookie } : {}) }, body: new URLSearchParams(data) });
+  const denied = await request('/mcp');
+  assert.equal(denied.status, 401);
+  assert.match(denied.headers.get('www-authenticate'), /resource_metadata=/);
+  const metadata = await (await request('/.well-known/oauth-protected-resource/mcp')).json();
+  assert.equal(metadata.resource, 'http://localhost:3000/mcp');
+  const registered = await request('/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_name: 'Claude test', redirect_uris: ['http://localhost:54321/callback'], token_endpoint_auth_method: 'none', grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'] }) });
+  assert.equal(registered.status, 201);
+  const client = await registered.json();
+  const verifier = 'a'.repeat(64);
+  const challenge = createHash('sha256').update(verifier).digest('base64url');
+  const params = { client_id: client.client_id, response_type: 'code', redirect_uri: client.redirect_uris[0], code_challenge: challenge, code_challenge_method: 'S256', state: 'test-state', resource: metadata.resource, scope: 'tick' };
+  const wrongResource = await request(`/authorize?${new URLSearchParams({ ...params, resource: 'https://wrong.example/mcp' })}`);
+  assert.match(wrongResource.headers.get('location'), /error=invalid_target/);
+  const auth = await request(`/authorize?${new URLSearchParams(params)}`);
+  assert.equal(auth.status, 302);
+  const loginPath = auth.headers.get('location');
+  const flow = new URL(loginPath, base).searchParams.get('flow');
+  const cookie = auth.headers.get('set-cookie').split(';')[0];
+  assert.equal((await request(loginPath)).status, 400);
+  assert.equal((await request(loginPath, { headers: { Cookie: cookie } })).status, 200);
+  assert.equal((await post('/oauth/login', { flow, email: 'user@example.com', password: 'password' })).status, 400);
+  const login = await post('/oauth/login', { flow, email: 'user@example.com', password: 'password' }, cookie);
+  const html = await login.text();
+  assert.equal(login.status, 200);
+  assert.match(html, /Example &lt;team&gt;/);
+  assert.doesNotMatch(html, /tick-secret|other-secret|password/);
+  assert.equal(upstream[0].headers.Authorization, `Basic ${Buffer.from('user@example.com:password').toString('base64')}`);
+  assert.equal((await post('/oauth/approve', { flow, subscription: '999', decision: 'allow' }, cookie)).status, 400);
+  const approval = await post('/oauth/approve', { flow, subscription: '456', decision: 'allow' }, cookie);
+  const callback = new URL(approval.headers.get('location'));
+  assert.equal(callback.searchParams.get('state'), 'test-state');
+  const code = callback.searchParams.get('code');
+  const exchange = { grant_type: 'authorization_code', client_id: client.client_id, code, redirect_uri: params.redirect_uri, resource: params.resource, code_verifier: verifier };
+  assert.equal((await post('/token', { ...exchange, code_verifier: 'b'.repeat(64) })).status, 400);
+  assert.equal((await post('/token', { ...exchange, resource: 'https://wrong.example/mcp' })).status, 400);
+  const response = await post('/token', exchange);
+  assert.equal(response.status, 200);
+  const tokens = await response.json();
+  assert.notEqual(tokens.access_token, 'other-secret');
+  assert.equal((await post('/token', exchange)).status, 400);
+  const mcp = await request('/mcp', { method: 'POST', headers: { Authorization: `Bearer ${tokens.access_token}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'list_projects', arguments: {} } }) });
+  assert.equal(mcp.status, 200);
+  assert.equal(upstream.at(-1).headers.Authorization, 'Token token=other-secret');
+  assert.match(upstream.at(-1).url, /\/456\/api\/v2\/projects.json/);
+  const refreshed = await post('/token', { grant_type: 'refresh_token', refresh_token: tokens.refresh_token, client_id: client.client_id, resource: params.resource });
+  assert.equal(refreshed.status, 200);
+  assert.equal((await post('/token', { grant_type: 'refresh_token', refresh_token: tokens.refresh_token, client_id: client.client_id })).status, 400);
+  await oauth.provider.revokeToken(client, { token: tokens.access_token });
+  assert.equal((await request('/mcp', { headers: { Authorization: `Bearer ${tokens.access_token}` } })).status, 401);
+});

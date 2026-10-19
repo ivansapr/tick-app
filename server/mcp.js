@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 
 const id = z.number().int().positive();
 const page = id.default(1);
@@ -68,13 +69,21 @@ function createServer(credentials, fetchImpl) {
   return server;
 }
 
-export function mountMcp(app, { fetchImpl = fetch } = {}) {
+export function mountMcp(app, { fetchImpl = fetch, oauth } = {}) {
+  if (oauth) {
+    const authenticate = requireBearerAuth({ verifier: oauth.provider, requiredScopes: ['tick'], resourceMetadataUrl: oauth.metadataUrl, expectedResource: oauth.resource });
+    app.use('/mcp', (req, res, next) => {
+      if (req.get('authorization')?.startsWith('Token token=')) return next();
+      return authenticate(req, res, next);
+    });
+  }
   app.all('/mcp', async (req, res) => {
     // This endpoint is for native MCP clients; disallow browser-origin requests.
     if (req.headers.origin) return res.status(403).json({ error: 'Browser origins are not supported' });
-    const authorization = req.get('authorization') ?? '';
-    const subscription = req.get('x-tick-subscription-id') ?? '';
-    const email = req.get('x-tick-email') ?? '';
+    const credentials = req.auth?.extra?.credentials;
+    const authorization = credentials?.authorization ?? req.get('authorization') ?? '';
+    const subscription = credentials?.subscription ?? req.get('x-tick-subscription-id') ?? '';
+    const email = credentials?.email ?? req.get('x-tick-email') ?? '';
     if (!/^Token token=\S+$/.test(authorization) || !/^\d+$/.test(subscription) || !/^[^\s@<>]+@[^\s@<>]+$/.test(email)) {
       return res.status(401).json({ error: 'Provide Authorization: Token token=..., X-Tick-Subscription-Id, and X-Tick-Email headers' });
     }

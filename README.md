@@ -175,34 +175,47 @@ npm start
 ```
 
 The committed `.mcp.json` registers `tick` for Claude Code in this project.
-Export your credentials in the shell before starting Claude:
+Start Claude, approve the project configuration, then use `/mcp` to authenticate.
+Claude opens a browser where you sign in with your Tick email and password,
+select a subscription, and approve access. No Tick token or subscription environment
+variables are required. Tick's [roles endpoint](https://github.com/tick/tick-api/blob/master/sections/roles.md)
+provides the API token after sign-in; your password is never stored.
+
+For a deployed app, set this **server** environment variable to its public origin:
 
 ```bash
-export TICK_SUBSCRIPTION_ID=123456
-export TICK_TOKEN=your_tick_api_token
-export TICK_EMAIL=you@example.com
-# Optional: point to this app's HTTPS deployment instead of localhost.
-export TICK_MCP_URL=http://localhost:3000/mcp
-claude
+MCP_PUBLIC_URL=https://your-app.example.com
 ```
 
-Approve the project MCP configuration when Claude asks, then use Claude's `/mcp`
-command to inspect the connection. Credentials come from your Tick profile API
-settings or the [roles endpoint](https://github.com/tick/tick-api/blob/master/sections/roles.md).
-`.env.local` is not automatically loaded into Claude's environment.
+Then users register the URL in Claude Code:
 
-For frontend development, run `PORT=3001 npm start` alongside `npm run dev`;
-Vite proxies `/mcp` to the Express backend on port 3001. Production and Docker
-serve `/mcp` directly on the app's port.
+```bash
+claude mcp add --transport http tick https://your-app.example.com/mcp
+```
 
-Each MCP request must include `Authorization: Token token=...`,
-`X-Tick-Subscription-Id`, and `X-Tick-Email`. The server forwards those credentials
-only to Tick, sets `User-Agent: TickMCP (<email>)`, and never reads browser login
-storage. Use HTTPS for remote deployments. This endpoint uses header credentials,
-not OAuth; the included configuration targets Claude Code.
+Alternatively, set `TICK_MCP_URL` before launching Claude to override the URL in
+this project's `.mcp.json`. Local development defaults to `http://localhost:3000`.
 
-Run `npm run test:mcp` to verify the SDK handshake, tools, API forwarding, and
-credential/path protections with a mocked Tick API.
+The server implements OAuth discovery, dynamic client registration, authorization
+codes with PKCE, one-hour access tokens, rotating seven-day refresh tokens, and
+revocation. Claude receives an opaque app token; the Tick token stays on the server.
+Authorization state is **in memory**: use one server instance, and reconnect after
+server restarts. Persistent shared storage is needed before running multiple replicas.
+Sign-in attempts are limited to ten per IP per fifteen minutes. Remote deployments
+require HTTPS. Sign-in uses Tick email/password; accounts without a Tick password
+need a Tick-supported way to obtain one.
+
+For frontend development, run `PORT=3001 MCP_PUBLIC_URL=http://localhost:3000 npm start`
+alongside `npm run dev`; Vite proxies the MCP and authorization routes to port 3001.
+Production and Docker serve these routes directly on the app's port.
+
+Existing clients can still supply `Authorization: Token token=...`,
+`X-Tick-Subscription-Id`, and `X-Tick-Email` headers for direct Tick authentication.
+The browser authorization flow requires none of those headers.
+
+Run `npm run test:mcp` to verify the MCP handshake, API forwarding, browser
+sign-in and consent, PKCE, resource binding, refresh rotation, and revocation
+against a mocked Tick API.
 
 The app uses the Tick API v2. See [API_ENDPOINTS.md](./API_ENDPOINTS.md) for full API documentation.
 
