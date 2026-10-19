@@ -69,6 +69,7 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      "/mcp": "http://127.0.0.1:3001",
       // Tickspot's API rejects browser User-Agents; browsers won't let
       // client JS override that header, so this proxy sets it instead
       // (server.js does the same for production).

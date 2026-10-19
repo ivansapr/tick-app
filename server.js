@@ -1,12 +1,14 @@
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { mountMcp } from "./server/mcp.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TICKSPOT_BASE_URL = "https://www.tickspot.com";
 
 const app = express();
 app.use(express.json());
+mountMcp(app);
 
 // Tickspot's API rejects requests whose User-Agent looks like a browser.
 // Browsers refuse to let client JS override User-Agent, so this call has

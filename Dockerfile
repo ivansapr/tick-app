@@ -18,6 +18,7 @@ COPY --from=build /app/package.json /app/package-lock.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
 COPY --from=build /app/server.js ./server.js
+COPY --from=build /app/server ./server
 
 USER node
 EXPOSE 3000

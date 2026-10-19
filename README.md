@@ -159,6 +159,51 @@ tick-client/
 
 ## API Integration
 
+### Claude Code MCP endpoint
+
+The Express server serves a stateless Streamable HTTP MCP endpoint at `/mcp`,
+alongside the app. It uses the official MCP SDK and provides `list_projects`,
+`list_tasks`, `list_entries`, `create_entry`, and `request`. The last tool supports
+GET, POST, PUT, and DELETE for other subscription endpoints. List tools return
+one page; increment `page` until Tick returns an empty list.
+
+Start the app server:
+
+```bash
+npm run build
+npm start
+```
+
+The committed `.mcp.json` registers `tick` for Claude Code in this project.
+Export your credentials in the shell before starting Claude:
+
+```bash
+export TICK_SUBSCRIPTION_ID=123456
+export TICK_TOKEN=your_tick_api_token
+export TICK_EMAIL=you@example.com
+# Optional: point to this app's HTTPS deployment instead of localhost.
+export TICK_MCP_URL=http://localhost:3000/mcp
+claude
+```
+
+Approve the project MCP configuration when Claude asks, then use Claude's `/mcp`
+command to inspect the connection. Credentials come from your Tick profile API
+settings or the [roles endpoint](https://github.com/tick/tick-api/blob/master/sections/roles.md).
+`.env.local` is not automatically loaded into Claude's environment.
+
+For frontend development, run `PORT=3001 npm start` alongside `npm run dev`;
+Vite proxies `/mcp` to the Express backend on port 3001. Production and Docker
+serve `/mcp` directly on the app's port.
+
+Each MCP request must include `Authorization: Token token=...`,
+`X-Tick-Subscription-Id`, and `X-Tick-Email`. The server forwards those credentials
+only to Tick, sets `User-Agent: TickMCP (<email>)`, and never reads browser login
+storage. Use HTTPS for remote deployments. This endpoint uses header credentials,
+not OAuth; the included configuration targets Claude Code.
+
+Run `npm run test:mcp` to verify the SDK handshake, tools, API forwarding, and
+credential/path protections with a mocked Tick API.
+
 The app uses the Tick API v2. See [API_ENDPOINTS.md](./API_ENDPOINTS.md) for full API documentation.
 
 ### Authentication
