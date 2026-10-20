@@ -206,8 +206,18 @@ this project's `.mcp.json`. Local development defaults to `http://localhost:3000
 The server implements OAuth discovery, dynamic client registration, authorization
 codes with PKCE, one-hour access tokens, rotating seven-day refresh tokens, and
 revocation. Claude receives an opaque app token; the Tick token stays on the server.
-Authorization state is **in memory**: use one server instance, and reconnect after
-server restarts. Persistent shared storage is needed before running multiple replicas.
+OAuth client registrations persist to `.data/oauth-clients.json` (override with
+`MCP_CLIENTS_FILE`). **Mount `/app/.data` as a persistent named volume** in Docker
+so deployments retain registered client IDs. For example, add
+`--mount source=tick-oauth-data,target=/app/.data` to `docker run`, or configure
+that persistent volume in your hosting dashboard. The file contains OAuth client
+metadata/secrets; keep it private and do not commit it.
+
+Access tokens, refresh tokens, and pending sign-in flows remain **in memory**:
+users must sign in again after server restarts, but their registered client IDs
+remain valid. Use one server instance; shared storage is needed for multiple replicas.
+Existing client IDs lost before this change cannot be recovered: clear Tick's
+authentication in Claude once and start a fresh authorization flow after deployment.
 Sign-in attempts are limited to ten per IP per fifteen minutes. Remote deployments
 require HTTPS. Sign-in uses Tick email/password; accounts without a Tick password
 need a Tick-supported way to obtain one.

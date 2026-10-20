@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import express from 'express';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { mountOAuth } from './oauth.js';
 import { mountMcp } from './mcp.js';
 import { configureProxy } from './proxy.js';
@@ -19,7 +22,10 @@ test('browser sign-in, consent, PKCE, resource binding, refresh and revocation',
       { subscription_id: 456, company: 'Other', api_token: 'other-secret' },
     ] : [{ id: 9 }]);
   };
-  const oauth = mountOAuth(app, { publicUrl: 'http://localhost:3000', fetchImpl });
+  const directory = mkdtempSync(join(tmpdir(), 'tick-oauth-test-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const clientsFile = join(directory, 'clients.json');
+  const oauth = mountOAuth(app, { publicUrl: 'http://localhost:3000', fetchImpl, clientsFile });
   mountMcp(app, { oauth, fetchImpl });
   const listener = app.listen(0, '127.0.0.1');
   await new Promise(resolve => listener.once('listening', resolve));
@@ -37,6 +43,8 @@ test('browser sign-in, consent, PKCE, resource binding, refresh and revocation',
   const registered = await request('/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_name: 'Claude test', redirect_uris: ['http://localhost:54321/callback'], token_endpoint_auth_method: 'none', grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'] }) });
   assert.equal(registered.status, 201);
   const client = await registered.json();
+  const restarted = mountOAuth(express(), { publicUrl: 'http://localhost:3000', fetchImpl, clientsFile });
+  assert.deepEqual(await restarted.provider.clientsStore.getClient(client.client_id), client);
   const verifier = 'a'.repeat(64);
   const challenge = createHash('sha256').update(verifier).digest('base64url');
   const params = { client_id: client.client_id, response_type: 'code', redirect_uri: client.redirect_uris[0], code_challenge: challenge, code_challenge_method: 'S256', state: 'test-state', resource: metadata.resource, scope: 'tick' };

@@ -1,5 +1,6 @@
 import express from 'express';
 import { randomBytes } from 'node:crypto';
+import { createClientsStore } from './clients-store.js';
 import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import { InvalidGrantError, InvalidTokenError, InvalidTargetError, InvalidScopeError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 
@@ -20,11 +21,12 @@ function store() {
   };
 }
 
-export function mountOAuth(app, { publicUrl, fetchImpl = fetch }) {
+export function mountOAuth(app, { publicUrl, fetchImpl = fetch, clientsFile = process.env.MCP_CLIENTS_FILE }) {
   const issuer = new URL(publicUrl);
   if (issuer.pathname !== '/' || issuer.search || issuer.hash || issuer.username || issuer.password) throw new Error('MCP_PUBLIC_URL must be an origin URL');
   const resource = new URL('/mcp', issuer);
-  const clients = store(), pending = store(), codes = store(), access = store(), refresh = store(), attempts = store();
+  const clients = createClientsStore(clientsFile);
+  const pending = store(), codes = store(), access = store(), refresh = store(), attempts = store();
   function checkResource(value) {
     if (value && String(value) !== resource.href) throw new InvalidTargetError('Invalid MCP resource');
   }
@@ -41,7 +43,7 @@ export function mountOAuth(app, { publicUrl, fetchImpl = fetch }) {
   }
   const provider = {
     clientsStore: {
-      getClient(id) { return clients.get(id)?.client; },
+      getClient(id) { return clients.getClient(id); },
       registerClient(client) {
         // Only explicit HTTPS or native loopback callbacks; never wildcard redirects.
         if (!client.redirect_uris.every(value => {
@@ -49,9 +51,7 @@ export function mountOAuth(app, { publicUrl, fetchImpl = fetch }) {
           return !url.hash && !url.username && !url.password && (url.protocol === 'https:' ||
             (url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)));
         })) throw new InvalidGrantError('Use HTTPS or loopback redirect URIs');
-        const registered = { ...client, client_id: nonce(), client_id_issued_at: Math.floor(now() / 1000) };
-        clients.set(registered.client_id, { client: registered }, 30 * 24 * 60 * MINUTE);
-        return registered;
+        return clients.registerClient(client);
       },
     },
     async authorize(client, params, res) {

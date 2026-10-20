@@ -22,6 +22,8 @@ COPY --from=build /app/build ./build
 COPY --from=build /app/server.js ./server.js
 COPY --from=build /app/server ./server
 
+RUN mkdir -p /app/.data && chown node:node /app/.data
+
 USER node
 EXPOSE 3000
 
