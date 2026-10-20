@@ -185,7 +185,14 @@ For a deployed app, set this **server** environment variable to its public origi
 
 ```bash
 MCP_PUBLIC_URL=https://your-app.example.com
+# If running behind one ingress proxy (already set in Docker):
+TRUST_PROXY=1
 ```
+
+Set `TRUST_PROXY` to the actual number of trusted proxy hops, or a comma-separated
+list of trusted proxy IPs/CIDRs. Direct Node startup defaults to no proxy trust.
+Docker defaults to one ingress hop; override it if your topology differs.
+`MCP_PUBLIC_URL` must match the browser origin exactly, including HTTPS.
 
 Then users register the URL in Claude Code:
 

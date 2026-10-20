@@ -89,7 +89,8 @@ export function mountOAuth(app, { publicUrl, fetchImpl = fetch }) {
   };
   app.use(mcpAuthRouter({ provider, issuerUrl: issuer, resourceServerUrl: resource, scopesSupported: ['tick'], resourceName: 'Tick Time Tracker' }));
   app.use('/oauth', express.urlencoded({ extended: false, limit: '8kb' }), (req, res, next) => {
-    res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'", 'X-Content-Type-Options': 'nosniff' });
+    // no-referrer makes browser form POSTs send Origin: null, failing CSRF checks.
+    res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'same-origin', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'", 'X-Content-Type-Options': 'nosniff' });
     next();
   });
   function getFlow(req) {
@@ -109,7 +110,7 @@ export function mountOAuth(app, { publicUrl, fetchImpl = fetch }) {
   app.post('/oauth/login', async (req, res) => {
     const { flow, record } = getFlow(req);
     if (!record || record.roles) return res.status(400).send('Authorization expired. Reconnect from Claude.');
-    if (req.headers.origin && req.headers.origin !== issuer.origin) return res.sendStatus(403);
+    if (req.headers.origin && req.headers.origin !== issuer.origin) return res.status(403).send('Sign-in origin rejected. Reopen sign-in from Claude. The server MCP_PUBLIC_URL must match this site\'s HTTPS origin.');
     const key = req.ip;
     const attempt = attempts.get(key) || { count: 0 };
     if (attempt.count >= 10) return res.status(429).send('Too many sign-in attempts. Try again in 15 minutes.');
@@ -133,7 +134,7 @@ export function mountOAuth(app, { publicUrl, fetchImpl = fetch }) {
   app.post('/oauth/approve', (req, res) => {
     const { flow, record } = getFlow(req);
     if (!record?.roles) return res.status(400).send('Authorization expired. Reconnect from Claude.');
-    if (req.headers.origin && req.headers.origin !== issuer.origin) return res.sendStatus(403);
+    if (req.headers.origin && req.headers.origin !== issuer.origin) return res.status(403).send('Authorization origin rejected. Reopen sign-in from Claude. The server MCP_PUBLIC_URL must match this site\'s HTTPS origin.');
     const role = record.roles.find(r => String(r.subscription_id) === req.body.subscription);
     if (!role) return res.sendStatus(400);
     pending.delete(flow);

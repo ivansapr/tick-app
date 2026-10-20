@@ -12,6 +12,8 @@ RUN npm prune --omit=dev
 FROM node:22-bookworm-slim AS production
 
 ENV NODE_ENV=production
+# The container is behind the deployment's immediate ingress proxy.
+ENV TRUST_PROXY=1
 WORKDIR /app
 
 COPY --from=build /app/package.json /app/package-lock.json ./

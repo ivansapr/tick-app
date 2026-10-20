@@ -4,9 +4,12 @@ import { createHash } from 'node:crypto';
 import express from 'express';
 import { mountOAuth } from './oauth.js';
 import { mountMcp } from './mcp.js';
+import { configureProxy } from './proxy.js';
 
 test('browser sign-in, consent, PKCE, resource binding, refresh and revocation', async t => {
   const app = express();
+  configureProxy(app, '1');
+  app.get('/proxy-check', (req, res) => res.json({ ip: req.ip, protocol: req.protocol }));
   app.use(express.json());
   const upstream = [];
   const fetchImpl = async (url, options) => {
@@ -23,7 +26,9 @@ test('browser sign-in, consent, PKCE, resource binding, refresh and revocation',
   t.after(() => new Promise(resolve => listener.close(resolve)));
   const base = `http://127.0.0.1:${listener.address().port}`;
   const request = (path, options) => fetch(`${base}${path}`, { redirect: 'manual', ...options });
-  const post = (path, data, cookie) => request(path, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...(cookie ? { Cookie: cookie } : {}) }, body: new URLSearchParams(data) });
+  const post = (path, data, cookie) => request(path, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: 'http://localhost:3000', 'X-Forwarded-For': '198.51.100.24', ...(cookie ? { Cookie: cookie } : {}) }, body: new URLSearchParams(data) });
+  const proxyCheck = await request('/proxy-check', { headers: { 'X-Forwarded-For': '192.0.2.99, 198.51.100.24', 'X-Forwarded-Proto': 'https' } });
+  assert.deepEqual(await proxyCheck.json(), { ip: '198.51.100.24', protocol: 'https' });
   const denied = await request('/mcp');
   assert.equal(denied.status, 401);
   assert.match(denied.headers.get('www-authenticate'), /resource_metadata=/);
@@ -43,7 +48,12 @@ test('browser sign-in, consent, PKCE, resource binding, refresh and revocation',
   const flow = new URL(loginPath, base).searchParams.get('flow');
   const cookie = auth.headers.get('set-cookie').split(';')[0];
   assert.equal((await request(loginPath)).status, 400);
-  assert.equal((await request(loginPath, { headers: { Cookie: cookie } })).status, 200);
+  const loginPage = await request(loginPath, { headers: { Cookie: cookie } });
+  assert.equal(loginPage.status, 200);
+  assert.equal(loginPage.headers.get('referrer-policy'), 'same-origin');
+  const crossOrigin = await request('/oauth/login', { method: 'POST', headers: { Cookie: cookie, Origin: 'https://evil.example', 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ flow, email: 'user@example.com', password: 'password' }) });
+  assert.equal(crossOrigin.status, 403);
+  assert.equal(upstream.length, 0);
   assert.equal((await post('/oauth/login', { flow, email: 'user@example.com', password: 'password' })).status, 400);
   const login = await post('/oauth/login', { flow, email: 'user@example.com', password: 'password' }, cookie);
   const html = await login.text();

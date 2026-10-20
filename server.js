@@ -3,11 +3,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mountMcp } from "./server/mcp.js";
 import { mountOAuth } from "./server/oauth.js";
+import { configureProxy } from "./server/proxy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TICKSPOT_BASE_URL = "https://www.tickspot.com";
 
 const app = express();
+configureProxy(app);
 app.use(express.json());
 const oauth = mountOAuth(app, { publicUrl: process.env.MCP_PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}` });
 mountMcp(app, { oauth });
