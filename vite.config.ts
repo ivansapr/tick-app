@@ -42,6 +42,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // These navigations must reach Express, not the cached React shell.
+        navigateFallbackDenylist: [
+          /^\/(?:authorize|token|register|revoke|oauth|mcp|tickapi)(?:[/?]|$)/,
+          /^\/\.well-known(?:[/?]|$)/,
+        ],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         runtimeCaching: [
           {
@@ -63,6 +68,7 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: "module",
+        navigateFallbackAllowlist: [/^\/$/],
       },
     }),
   ],
