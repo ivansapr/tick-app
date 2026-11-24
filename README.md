@@ -163,9 +163,15 @@ tick-client/
 
 The Express server serves a stateless Streamable HTTP MCP endpoint at `/mcp`,
 alongside the app. It uses the official MCP SDK and provides `list_projects`,
-`list_tasks`, `list_entries`, `create_entry`, and `request`. The last tool supports
-GET, POST, PUT, and DELETE for other subscription endpoints. List tools return
-one page; increment `page` until Tick returns an empty list.
+`list_tasks`, `list_entries`, `summarize_entries`, `create_entry`, and `request`.
+The last tool supports GET, POST, PUT, and DELETE for other subscription endpoints.
+List tools return one page; increment `page` until Tick returns an empty list.
+
+`summarize_entries` answers questions like "what did I do last week?": given a
+date range it fetches every page of entries for the authenticated user (or a
+`user_id`, or `all_users: true`), optionally filtered by `project_id`, and
+returns each entry with its task and project names plus total hours, hours by
+date, and hours by project.
 
 Start the app server:
 

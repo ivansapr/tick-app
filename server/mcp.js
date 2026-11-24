@@ -31,6 +31,15 @@ function createServer(credentials, fetchImpl) {
     const text = await response.text();
     return text ? JSON.parse(text) : { ok: true };
   }
+  async function fetchAll(path, params = {}, maxPages = 50) {
+    const results = [];
+    for (let page = 1; page <= maxPages; page++) {
+      const batch = await call('GET', path, { ...params, page });
+      if (!Array.isArray(batch) || batch.length === 0) return results;
+      results.push(...batch);
+    }
+    throw new Error('Too many results; narrow the date range');
+  }
   function tool(name, description, inputSchema, readOnly, handler) {
     server.registerTool(name, {
       description, inputSchema,
@@ -54,6 +63,44 @@ function createServer(credentials, fetchImpl) {
   }, true, (args) => {
     if (args.start_date > args.end_date) throw new Error('Invalid date range');
     return call('GET', '/entries.json', args);
+  });
+  tool('summarize_entries', 'Show everything logged between inclusive YYYY-MM-DD dates, e.g. "what did I do last week". Fetches all pages, defaults to the authenticated user (pass all_users for everyone), and returns each entry with task and project names plus totals by day and project.', {
+    start_date: date, end_date: date, user_id: id.optional(), project_id: id.optional(),
+    all_users: z.boolean().default(false),
+  }, true, async ({ start_date, end_date, user_id, project_id, all_users }) => {
+    if (start_date > end_date) throw new Error('Invalid date range');
+    if (user_id === undefined && !all_users) {
+      const me = (await fetchAll('/users.json')).find(user => user.email?.toLowerCase() === credentials.email.toLowerCase());
+      if (!me) throw new Error('Could not find the authenticated Tick user');
+      user_id = me.id;
+    }
+    const entries = await fetchAll('/entries.json', { start_date, end_date, user_id, project_id });
+    const tasks = new Map();
+    const projects = new Map();
+    const lookup = (cache, path) => {
+      if (!cache.has(path)) cache.set(path, call('GET', path).catch(() => null));
+      return cache.get(path);
+    };
+    const items = await Promise.all(entries.map(async (entry) => {
+      const task = entry.task_id ? await lookup(tasks, `/tasks/${entry.task_id}.json`) : null;
+      const project = task?.project_id ? await lookup(projects, `/projects/${task.project_id}.json`) : null;
+      return {
+        id: entry.id, date: entry.date, hours: entry.hours, notes: entry.notes, user_id: entry.user_id,
+        task_id: entry.task_id, task: task?.name ?? null, project_id: task?.project_id ?? null, project: project?.name ?? null,
+      };
+    }));
+    items.sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+    const round = (n) => Math.round(n * 100) / 100;
+    const totals = (key) => Object.fromEntries(Object.entries(items.reduce((acc, item) => {
+      const k = item[key] ?? 'Unknown';
+      acc[k] = (acc[k] ?? 0) + item.hours;
+      return acc;
+    }, {})).map(([k, v]) => [k, round(v)]));
+    return {
+      start_date, end_date, user_id: user_id ?? null, entry_count: items.length,
+      total_hours: round(items.reduce((sum, item) => sum + item.hours, 0)),
+      hours_by_date: totals('date'), hours_by_project: totals('project'), entries: items,
+    };
   });
   tool('create_entry', 'Log time against a Tick task.', {
     task_id: id, hours: z.number().positive(), date, notes: z.string().default(''),
